@@ -1,0 +1,119 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport"
+          content="width=device-width, user-scalable=no, initial-scale=1.0, maximum-scale=1.0, minimum-scale=1.0">
+    <title>首页</title>
+    <link rel="stylesheet" href="__PUBLIC__/web/css/home/bootstrap.min.css">
+    <link rel="stylesheet" href="__PUBLIC__/web/css/home/common.css">
+    <link rel="stylesheet" href="__PUBLIC__/web/css/home/index.css">
+</head>
+<body>
+<!-- 头部 -->
+<include file="Public/head"/>
+
+<!-- banner轮播图 -->
+<div id="myCarousel" class="carousel slide">
+    <!-- 轮播（Carousel）指标 -->
+    <ol class="carousel-indicators">
+        <li data-target="#myCarousel" data-slide-to="0" class="active"></li>
+        <li data-target="#myCarousel" data-slide-to="1"></li>
+        <li data-target="#myCarousel" data-slide-to="2"></li>
+        <li data-target="#myCarousel" data-slide-to="3"></li>
+        <li data-target="#myCarousel" data-slide-to="4"></li>
+        <li data-target="#myCarousel" data-slide-to="5"></li>
+        <li data-target="#myCarousel" data-slide-to="6"></li>
+        <li data-target="#myCarousel" data-slide-to="7"></li>
+    </ol>
+    <!-- 轮播（Carousel）项目 -->
+    <div class="carousel-inner">
+
+        <volist name="flash" id="flash_val">
+            <if condition="$key eq 0 ">
+                <div class="item active">
+                    <a href="javascript:;">
+                        <img src="{$flash_val.pic}" alt="{$flash_val.title}" width="100%" class="img-responsive">
+                    </a>
+                </div>
+            <else />
+                <div class="item">
+                    <a href="javascript:;">
+                        <img src="{$flash_val.pic}" alt="{$flash_val.title}" width="100%" class="img-responsive">
+                    </a>
+                </div>
+            </if>
+
+
+        </volist>
+
+    </div>
+    <!-- 轮播（Carousel）导航 -->
+    <a class="carousel-control left" href="#myCarousel"
+       data-slide="prev"><span>&lsaquo;</span>
+    </a>
+    <a class="carousel-control right" href="#myCarousel"
+       data-slide="next"><span>&rsaquo;</span>
+    </a>
+</div>
+
+<!-- 企业新闻 -->
+<div class="container company_news">
+    <div class="row">
+        <div class="col-lg-12 col-md-12 col-sm-12 col-xs-12 news_div">
+            <div class="col-lg-4 col-md-4 col-sm-12 col-xs-12">
+                <div class="row content_title">
+                    <h5>企业新闻 <span>News</span></h5>
+                    <a href="__APP__/home/news/new_list"><img src="__PUBLIC__/web/images/home/more.png"></a>
+                </div>
+                <div class="media">
+                    <a class="media-left" href="__APP__/home/news/news/aid/{$top_yi.aid}">
+                        <img class="media-object" width="136px" src="{$top_yi.thumbnail}">
+                    </a>
+                    <div class="media-body">
+                        <a href="__APP__/home/news/news/aid/{$top_yi.aid}"><h5 class="media-heading">{$top_yi.title}</h5></a>
+                    </div>
+                </div>
+
+                <ul class="content_ul">
+                <volist name="top_er" id="val">
+                    <li class="clearfix">
+                        <a href="__APP__/home/news/news/aid/{$val.aid}">{$val.title}</a>
+                        <span class="text-right">{$val.t|date="Y-m-d",###}</span>
+                    </li>
+                </volist>
+                </ul>
+
+            </div>
+            <div class="col-lg-4 col-md-4 col-sm-12 col-xs-12">
+                <a href="__APP__/home/products/pran/aid/{$home_cpy.aid}"><img src="{$home_cpy.thumbnail}" class="img-responsive" width="100%"></a>
+            </div>
+            <div class="col-lg-4 col-md-4 col-sm-12 col-xs-12">
+                <div class="roolImg">
+                    <a href="__APP__/home/products/pran/aid/{$home_cpe.aid}">
+                        <img src="{$home_cpe.thumbnail}" class="img-responsive" width="100%">
+                    </a>
+                </div>
+                <div class="proBot">
+                    <div class="proDate1 proBg">新品发布</div>
+                    <div class="proText">
+                        <h4>
+                            <a href="javascript:;">{$home_cpe.title}</a>
+                        </h4>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- 尾部 -->
+<include file="Public/footer"/>
+
+<script src="__PUBLIC__/web/js/home/jquery-3.2.1.min.js"></script>
+<script src="__PUBLIC__/web/js/home/bootstrap.min.js"></script>
+<script src="__PUBLIC__/web/js/home/common.js"></script>
+<script src="__PUBLIC__/web/js/home/index.js"></script>
+
+</body>
+</html>

@@ -1,0 +1,81 @@
+<div id="content">
+
+	<h2>图片上传</h2>
+	<form id="form1" action="photo_save/store/{$id}" enctype="multipart/form-data" method="post">
+    		<div class="fieldset">
+
+			<table style="vertical-align:top;">
+				<td><label for="txtFileName">选择文件:</label></td>
+					<td>
+						<div>
+							<div>
+								<input type="text" id="txtFileName" disabled="true" style="border: solid 1px; background-color: #FFFFFF;"> 
+
+                                <span id="spanButtonPlaceHolder"></span>																
+							</div>
+							<div class="flash" id="fsUploadProgress">
+								
+							</div>						
+							<input type="hidden" name="user_id" id="user_id" value="" />	
+						</div>
+					</td>
+				</tr>
+
+			</table>
+			<br />
+			<input class="btn_or" type="submit" value="开始上传" id="btnSubmit" />
+               <input id="btnCancel" type="button" value="取消所有上传文件" onclick="swfu.cancelQueue();" disabled="disabled" style="margin-top:10px; font-size: 8pt; height: 29px;"/>
+               <div><font color='red'>※每次上传图片最多8张，每张图片最大2MB。原图名称不能为‘未命名’。</font></div>
+		</div>
+               
+	</form>
+</div>
+
+
+<link href="../../swfupload/css/default.css" rel="stylesheet" type="text/css" />
+<script type="text/javascript" src="../../swfupload/swfupload.js"></script>
+<script type="text/javascript" src="../../swfupload/js/swfupload.queue.js"></script>
+<script type="text/javascript" src="../../swfupload/js/fileprogress.js"></script>
+<script type="text/javascript" src="../../swfupload/js/handlers.js"></script>
+<script type="text/javascript">
+		var swfu;
+
+		window.onload = function() {
+			var settings = {
+				flash_url : "../../swfupload/swfupload.swf",
+				upload_url: "?a=addphoto&store={$id}",
+				file_size_limit : "16 MB",
+				file_types : "*.jpg;*.jpeg;*.gif;*.png",
+				file_types_description : "JPG",
+				file_upload_limit : 8,  //配置上传个数
+				file_queue_limit : 0,
+				custom_settings : {
+					progressTarget : "fsUploadProgress",
+					cancelButtonId : "btnCancel"
+				},
+				debug: false,
+
+				// Button settings
+				button_image_url: "../../swfupload/button_blue.png",
+				button_width: "75",
+				button_height: "30",
+				button_placeholder_id: "spanButtonPlaceHolder",
+				button_text: '',
+				button_text_style: ".theFont { font-size: 16; }",
+				button_text_left_padding: 12,
+				button_text_top_padding: 3,
+				
+				file_queued_handler : fileQueued,
+				file_queue_error_handler : fileQueueError,
+				file_dialog_complete_handler : fileDialogComplete,
+				upload_start_handler : uploadStart,
+				upload_progress_handler : uploadProgress,
+				upload_error_handler : uploadError,
+				upload_success_handler : uploadSuccess,
+				upload_complete_handler : uploadComplete,
+				queue_complete_handler : queueComplete	
+			};
+
+			swfu = new SWFUpload(settings);
+	     };
+</script>
