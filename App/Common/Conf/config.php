@@ -14,4 +14,5 @@ return array(
     'DB_LEVEL' => '9',         //压缩级别   1:普通   4:一般   9:最高
     //扩展配置文件
     'LOAD_EXT_CONFIG' => 'db',
+    'Library'=>'D:\phpStudy\WWW\ThinkPHP\Library',//方便调用jwt
 );

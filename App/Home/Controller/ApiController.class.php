@@ -3,6 +3,9 @@
 namespace Home\Controller;
 use Think\Upload;
 use Vendor\Page;
+require(C('Library')."/Firebase/JWT/JWT.php");
+use \Firebase\JWT\JWT;
+
 
 class ApiController extends ComController
 {
@@ -21,6 +24,36 @@ class ApiController extends ComController
 
         $this->display();
     }
+
+//jwt测试
+//    public function one(){
+//
+//        $key = "xmkly";
+//        $token = array(
+//            'uid' => 1050,
+//            'username' => 'baby',
+//        );
+//
+//        $jwt = JWT::encode($token, $key);
+//        echo $jwt;
+//    }
+//    public function two(){
+//        $key = "xmkly";
+//        $str = isset($_POST['str']) ? $_POST['str'] : '';
+//        if($str == ''){
+//            exit('empty');
+//        }
+//        $decoded = JWT::decode( $str, $key, array('HS256'));
+//        if(!is_object($decoded)){
+//            echo "error";
+//        }else{
+//            $arr = json_decode(json_encode($decoded), true);
+//         //   dump($arr);
+//            $uid = $arr['uid']; //既然能拿到uid，那么就说明是有权限的用户，并且他的uid是1050。剩下的，只要有uid，该干什么就干什么好了。
+//            echo  $uid;
+//        }
+//    }
+
 
 //新闻媒体行业列表页
     function xwmtlb(){
