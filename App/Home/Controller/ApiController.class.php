@@ -38,6 +38,43 @@ class ApiController extends ComController
    //     $this->display();
     }
 
+    /*验证jwt
+     *$str  jwt密码
+     * $key  jwt参数
+     *$is_yz  0是返回数据 1是验证是不是唯一登入
+     * */
+    private function is_jwt($str='', $key='',$is_yz='0',$user_id=''){
+        if($str == ''){
+            returnApiError( 'tokan必须！');
+        }
+        $decoded = JWT::decode( $str, $key, array('HS256'));
+        if(!is_object($decoded)){
+            returnApiError( 'tokan错误！');
+        }else{
+            if($is_yz){
+                //没登入
+                $arr = json_decode(json_encode($decoded), true);
+
+                if( $arr['id']!==$user_id ){
+                    returnApiError('请登入');
+                }
+               //有人异步登入
+                $user = M("XmMember")->field('id')->where(array('id' => $arr['id'], 'sessionId' => $arr['sessionid']))->find();
+
+if(!$user){
+    returnApiError('有人在其他设备登入，请注意自己账号安全');
+}
+
+            }else{
+                $arr = json_decode(json_encode($decoded), true);
+            }
+
+
+         return $arr;
+        }
+    }
+
+
 //-------------------------------------------------------------注册部分开始--------------------------------------------
     //注册
     public function register()
@@ -150,18 +187,54 @@ class ApiController extends ComController
         }
 
         $model = M("XmMember");
-        $user = $model->field('id,sex,moblie,is_fwz,is_nm,nm,o_username')->where(array('moblie' => $moblie, 'password' => $password))->find();
+        $user = $model->field('id')->where(array('moblie' => $moblie, 'password' => $password))->find();
         if ($user) {
+            //将session_id存到数据库
+
+            $where['id'] = $user['id'];
+            $data['sessionId']=  session_id();
+            M('XmMember')->where($where)->save($data);
+
+
+            $users = $model->field('id,sex,moblie,is_fwz,is_nm,nm,o_username,sessionId')->where(array('moblie' => $moblie, 'password' => $password))->find();
+
             $key =$this->key_xm;
-            $token =$user;
+            $token =$users;
             $jwt = JWT::encode($token, $key);
-            $data=$user;
+            $data=$users;
             $data['token'] =  $jwt;
             returnApiSuccess('登入成功', $data);
             exit(0);
         } else {
             returnApiError('手机号或密码有错误');
         }
+}
+
+
+    //首页
+    public function syindex()
+    {
+        //验证必须登入
+        $user_id = isset($_POST['user_id']) ? trim($_POST['user_id']) : '';//用户id
+       $str = isset($_POST['token']) ? trim($_POST['token']) : '';
+       $key =  $this->key_xm;
+
+        if ($user_id == '') { returnApiError( '用户id必须');}
+        if ($str == '') { returnApiError( 'token必须');}
+        if ($key == '') { returnApiError( 'key必须');}
+        $is_jwt=$this->is_jwt($str,$key,1,$user_id);
+
+
+
+
+
+
+        $table="Flash";
+        $field='id,pic,tp_sp';
+        $where['type']=3;
+        $limit=3;
+        $data=xm_gf($table,$field,$where,$limit);
+        returnApiSuccess('请求成功',$data);
 }
 
 
