@@ -61,16 +61,16 @@ class ApiController extends ComController
                //有人异步登入
                 $user = M("XmMember")->field('id')->where(array('id' => $arr['id'], 'sessionId' => $arr['sessionid']))->find();
 
-if(!$user){
-    returnApiError('有人在其他设备登入，请注意自己账号安全');
-}
+                if (!$user) {
+                    returnApiError('有人在其他设备登入，请注意自己账号安全');
+                }
 
-            }else{
+            } else {
                 $arr = json_decode(json_encode($decoded), true);
             }
 
 
-         return $arr;
+            return $arr;
         }
     }
 
