@@ -104,9 +104,36 @@ function checkDataGet($data = null){
     exit;
 }
 
+/*
+ * /验证消息来源
+ * $verify    lxb
+ * uid        用户id
+ * */
+function verifys($verify='')
+{
+    $t = intval($_POST['t']) > 0 ?$_POST['t'] : '';//时间
+    $xycs= isset($_POST['verify']) ? trim($_POST['verify']) : '';//mb5(时间+校验参数)
+    if ($verify != '51cc') {
+        returnApiError('非法数据！');
+    }
+
+};
+
+/*通用查询
+ *
+ *
+ * */
+function xm_gf($table='XmTab',$field='*',$where=null,$limit=null)
+{
+    $data=M($table);
+     $field=$field;
+    $datas=$data->field($field)->where($where)->limit($limit)->select();
+    return  $datas;
+    exit;
+}
 
 
-
+//------------------------------------------
 
 /*
  * 广告
@@ -215,18 +242,7 @@ function  spdata($field='*',$statue='1',$limit=null,$id=null){
 }
 
 
-/*
- * /验证消息来源
- * $verify    lxb
- * uid        用户id
- * */
-function verifys($verify='')
-{
-    if ($verify != '51cc') {
-        returnApiError('非法数据！');
-    }
 
-};
 
 //分页
 

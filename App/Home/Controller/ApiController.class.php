@@ -4,11 +4,14 @@ namespace Home\Controller;
 use Think\Upload;
 use Vendor\Page;
 require(C('Library')."/Firebase/JWT/JWT.php");
-use \Firebase\JWT\JWT;
+use Firebase\JWT\JWT;
 
+use XmClass\RndChinaName;
 
 class ApiController extends ComController
 {
+    private $token_xm; //校验参数
+    private $key_xm; //jwt参数
     public function _initialize()
     {
         header("Access-Control-Allow-Origin: *");
@@ -17,13 +20,151 @@ class ApiController extends ComController
         header("Access-Control-Allow-Methods: POST");
         header("Access-Control-Allow-Credentials: true");
         header("Access-Control-Allow-Headers: Content-Type, X-Requested-With, Cache-Control,Authorization");
+        $this->token_xm='kly2018';
+        $this->key_xm='klyjwt';
+        //验证
+        $t = intval($_POST['t']) > 0 ?$_POST['t'] : '';//时间
+        $xycs= isset($_POST['verify']) ? trim($_POST['verify']) : '';//mb5(时间+校验参数)
+        $xycs_bd=  $this->token_xm;
+        $verify=md5($t.$xycs_bd);
+        if ( $t == '') {returnApiError( '时间必须！');}
+        if ($xycs == '') {returnApiError( '校验码必须！');}
+    //    if ($verify!=$xycs){returnApiError( '非法数据');}
 
     }
     public function index()
     {
 
-        $this->display();
+   //     $this->display();
     }
+
+//-------------------------------------------------------------注册部分开始--------------------------------------------
+    //注册
+    public function register()
+    {
+
+        $moblie = isset($_POST['moblie']) ? trim($_POST['moblie']): '';//手机号
+        $password = isset($_POST['password']) ? password(trim($_POST['password'])) : '';
+
+
+        //验证
+        if ($moblie == '') { returnApiError( '手机号必须！');}
+        if ($password == '') {returnApiError( '密码必须！');}
+
+        $model = M("XmMember");
+        $user = $model->field('id')->where(array('moblie' => $moblie))->find();
+        if ($user) {
+            returnApiError( '手机号已注册');
+        }else{
+            //可以注册逻辑
+            $data['moblie']= $moblie;
+            $data['password']= $password;
+            $tjcg=$model->add($data);
+            if($tjcg){
+                returnApiSuccess('添加成功',$tjcg);
+            }else{
+                returnApiError( '添加失败');
+           }
+        }
+    }
+
+    //选择性别和职业展示页
+    public function ziyezs()
+    {
+        $sex= intval($_POST['sex']) > 0 ?$_POST['sex'] : '';//性别
+//赋值
+        $table="XmTab";
+        $field='id,o_username';
+        $where['type']=0;
+        $where['sex']=$sex;
+        $limit=10;
+        $data=xm_gf($table,$field,$where,$limit);
+        returnApiSuccess('请求成功',$data);
+    }
+
+    //确认选择性别和职业
+    public function ziyeqr()
+    {
+
+        $sex= intval($_POST['sex']) > 0 ?$_POST['sex'] : '0';//性别
+        $xzid=isset($_POST['xzid']) ? trim($_POST['xzid']) : '';//选择id
+        $user_id = intval($_POST['user_id']) > 0 ?$_POST['user_id'] : '';//用户id
+
+        //  验证
+        if ( $user_id == '') { returnApiError( '用户id必须！');}
+
+        //逻辑
+
+        $name_obj = new RndChinaName();
+        $name = $name_obj->getName(2);
+        $where['id'] =  $user_id;
+        $data['sex']=1;
+        $data['tc_id']= $xzid;
+        $data['nm']=  $name;
+        $User = M('XmMember')->where($where)->save($data);
+        if ($User) {
+            returnApiSuccess('请求成功', $User);
+        } else {
+            returnApiError('添加失败');
+        }
+    }
+
+   //完善资料
+    public function xmandage()
+    {
+        $username=isset($_POST['username']) ? trim($_POST['username']) : '';//姓名
+        $age= intval($_POST['age']) > 0 ?$_POST['age'] : '0';//年纪
+        $user_id = intval($_POST['user_id']) > 0 ?$_POST['user_id'] : '';//用户id
+
+        //验证
+        if ($username == '') { returnApiError( '姓名必须！');}
+        if ($age == 0) {returnApiError( '年纪必须！');}
+        if ( $user_id == '') { returnApiError( '用户id必须！');}
+
+        //逻辑
+        $where['id'] =  $user_id;
+        $data['o_username']= $username;
+        $data['age']=  $age;
+        $User = M('XmMember')->where($where)->save($data);
+        if ($User) {
+            returnApiSuccess('请求成功', $User);
+        } else {
+            returnApiError('添加失败');
+        }
+}
+
+//-------------------------------------------------------------注册部分完成--------------------------------------------
+
+//  登入
+    public function login()
+    {
+
+        $moblie = isset($_POST['moblie']) ? trim($_POST['moblie']) : '';
+        $password = isset($_POST['password']) ? password(trim($_POST['password'])) : '';
+  //      $remember = isset($_POST['remember']) ? $_POST['remember'] : 0;短信
+
+        if ($moblie == '') {
+            returnApiError('手机不能为空！');
+        } elseif ($password == '') {
+            returnApiError('密码必须！');
+        }
+
+        $model = M("XmMember");
+        $user = $model->field('id,sex,moblie,is_fwz,is_nm,nm,o_username')->where(array('moblie' => $moblie, 'password' => $password))->find();
+        if ($user) {
+            $key =$this->key_xm;
+            $token =$user;
+            $jwt = JWT::encode($token, $key);
+            $data=$user;
+            $data['token'] =  $jwt;
+            returnApiSuccess('登入成功', $data);
+            exit(0);
+        } else {
+            returnApiError('手机号或密码有错误');
+        }
+}
+
+
 
 //jwt测试
 //    public function one(){
