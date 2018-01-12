@@ -7,11 +7,20 @@ require(C('Library')."/Firebase/JWT/JWT.php");
 use Firebase\JWT\JWT;
 
 use XmClass\RndChinaName;
+use XmClass\Easemob;
 
 class ApiController extends ComController
 {
     private $token_xm; //校验参数
     private $key_xm; //jwt参数
+    private $man_xx_time; //线下发单限制时间
+    private $options;//环信配置
+
+//       private $options['client_id']='YXA6j5xyMORUEee2UYE4debtsQ';
+//       private $options['client_secret']='YXA6C0vhpohfnQMBfQAzfK-XNiWu_Lc';
+//       private $options['org_name']='1134171215115606';
+//       private $options['app_name']='appointment';
+
     public function _initialize()
     {
         header("Access-Control-Allow-Origin: *");
@@ -22,6 +31,12 @@ class ApiController extends ComController
         header("Access-Control-Allow-Headers: Content-Type, X-Requested-With, Cache-Control,Authorization");
         $this->token_xm='kly2018';
         $this->key_xm='klyjwt';
+        $this->man_xx_time='600';//10分钟
+
+        $this->options['client_id']='YXA6j5xyMORUEee2UYE4debtsQ';
+        $this->options['client_secret']='YXA6C0vhpohfnQMBfQAzfK-XNiWu_Lc';
+        $this->options['org_name']='1134171215115606';
+        $this->options['app_name']='appointment';
         //验证
         $t = intval($_POST['t']) > 0 ?$_POST['t'] : '';//时间
         $xycs= isset($_POST['verify']) ? trim($_POST['verify']) : '';//mb5(时间+校验参数)
@@ -40,6 +55,7 @@ class ApiController extends ComController
         $no_dr[]='xmandage'; //完善资料
         $no_dr[]='login'; //登入
         $no_dr[]='index'; //
+        $no_dr[]='ManPostPaymentAudit'; //支付后调用验证
 
         if(!in_array(ACTION_NAME, $no_dr)){
             $user_id = isset($_POST['user_id']) ? trim($_POST['user_id']) : '';//用户id
@@ -50,13 +66,43 @@ class ApiController extends ComController
             if ($key == '') { returnApiError( 'key必须');}
             $this->is_jwt($str,$key,1,$user_id);
         }
+
+
     }
 
 
     public function index()
     {
-        echo build_order_no();exit;
+
+
+
+        $h=new Easemob( $this->options);
+       // print_r($h->createUser("xm4","123456"));exit;
+//        var_dump($h->createUser("xm","123456"));
    //     $this->display();
+        $from='xm';
+        $target_type="users";
+        //$target_type="chatgroups";
+        $target=array("18672995588","lisi","wangwu");
+        //$target=array("122633509780062768");
+        $aaa='{
+        "flag": "Success",
+        "msg": "登入成功",
+        "data": {
+            "id": "6",
+            "sex": "1",
+            "moblie": "15994221308",
+            "is_fwz": "0",
+            "is_nm": "0",
+            "nm": "",
+            "o_username": "帅哥",
+            "token": "eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJpZCI6IjYiLCJzZXgiOiIxIiwibW9ibGllIjoiMTU5OTQyMjEzMDgiLCJpc19md3oiOiIwIiwiaXNfbm0iOiIwIiwibm0iOiIiLCJvX3VzZXJuYW1lIjoiXHU1ZTA1XHU1NGU1In0.eXuyWDJu2VRumIZlOsd_zA1-5qETI3ZbtOLwrgkuZxA"
+        }
+    }';
+        $content="$aaa";
+        $ext['a']="a";
+        $ext['b']="b";
+        var_dump($h->sendText($from,$target_type,$target,$content,$ext));
     }
 
     /*验证jwt
@@ -118,6 +164,15 @@ class ApiController extends ComController
             $data['moblie']= $moblie;
             $data['password']= $password;
             $data['code']= make_coupon_card();//邀请码
+            //环信注册
+            $h=new Easemob( $this->options);
+            $hx=$h->createUser($moblie,trim($_POST['password']));
+            if (isset($hx['entities'][0]["uuid"])) {
+                $data['hx_uuid'] = $hx['entities'][0]["uuid"];
+            } else {
+                returnApiError('环信注册失败请换用户名重新注册');
+            }
+
             $tjcg=$model->add($data);
             if($tjcg){
                 returnApiSuccess('添加成功',$tjcg);
@@ -519,20 +574,509 @@ class ApiController extends ComController
         $user_id = isset($_POST['user_id']) ? trim($_POST['user_id']) : '';//用户id
         $order_id = isset($_POST['order_id']) ? trim($_POST['order_id']) : '';//订单id
         $f_money= intval($_POST['money']) > 0 ?intval(trim($_POST['money'])) : '0';//金额
-        $User = M("XmOrder"); // 实例化User对象
+        $zffs= intval($_POST['zffs']) > 0 ?intval(trim($_POST['zffs'])) : '1';//支付方式1是余额2是微信3是支付宝
+        if($f_money==0){ returnApiError( '金额必须');}
+        $Oerder = M("XmOrder"); // 实例化User对象
         $where['order_id']= $order_id;
-        $data = $User->where($where)->find();
-       print_r($data);
-        //订单和要好支付的状态
-        //支付金额
-        //用户余额
+        $field='money,status';
+        $data = $Oerder->field($field)->where($where)->find();
+
+if($data['status']=='0'){
+//未支付
+    $where_u['id']=  $user_id ;
+    $field_u='balance,jk_balance,is_jkuser';
+    $user_data = M('XmMember')->field($field_u)->where($where_u)->find();
+    if($data['money'] != $f_money ){  returnApiError( '订单价格不正确');}
+    if($zffs==1){
+        //余额
+        if($user_data['is_jkuser']==1){
+            //是金卡
+            if($user_data['jk_balance']>= $f_money){
+                returnApiSuccess('金卡余额可以支付','1');
+            }else{
+                returnApiError( '金卡余额不足');
+            }
+   }else{
+            if($user_data['balance']>= $f_money){
+                returnApiSuccess('余额可以支付','1');
+            }else{
+                returnApiError( '余额不足');
+            }
+        }
+    }else{
+        //其他支付方式
+        returnApiSuccess('其他支付方式可以支付','1');
     }
+
+}else{
+//已支付
+    returnApiError( '订单状态不正确');
+}
+
+    }
+
+    //其它支付支付后返回改状态
+    public function ManPostPaymentAudit()
+    {
+       //查订单状态如果支付的不然走
+        //查价格看订单价格是不是正确的
+        //改变订单状态,扣个人钱
+    }
+
+    //余额线下支付支付后返回改状态
+    public function ManYePostPaymentAudit()
+    {
+
+       $user_id = isset($_POST['user_id']) ? trim($_POST['user_id']) : '';//用户id
+       $order_id = isset($_POST['order_id']) ? trim($_POST['order_id']) : '';//订单id
+        $f_money= intval($_POST['money']) > 0 ?intval(trim($_POST['money'])) : '0';//金额
+
+
+//
+//        if($f_money==0){ returnApiError( '金额必须');}
+//        if($order_id==''){ returnApiError( '订单id必须');}
+
+        $where_u['id']=  $user_id ;
+        $field_u='balance,jk_balance,is_jkuser';
+        $user_data = M('XmMember')->field($field_u)->where($where_u)->find();
+
+        if($user_data['is_jkuser']==1){
+            //是金卡
+            if($user_data['jk_balance']< $f_money){returnApiError( '金卡余额不足');}
+        }else{
+            if($user_data['balance']< $f_money){returnApiError( '余额不足');}
+        }
+
+        $Oerder = M("XmOrder"); // 实例化User对象
+        $where['order_id']= $order_id;
+        $field='money,status,target_area';
+        $data = $Oerder->field($field)->where($where)->find();
+//        if($data['status']>0){returnApiError( '订单已支付');}
+//        if($data['money'] != $f_money ){  returnApiError( '订单价格不正确');}
+        //改变订单状态,
+        $model = M();
+//        $m=D('XmOrder');
+//        $m2=D('XmMember');
+        $model->startTrans();
+        $where_dd['id']= $order_id;
+        $data_dd['status'] = '1';
+        $result=$model->table('qw_xm_order')->where($where_dd)->save($data_dd);
+
+        //扣个人钱
+        $where_us['id']= $user_id;
+        if($user_data['is_jkuser']==1){
+            //是金卡
+           $user_sx = $user_data['jk_balance'] -  $f_money;
+            if($user_sx>0){
+                $where_us['id']=  $user_id ;
+                $data_us['jk_balance'] = $user_sx;
+                $result2=$model->table('qw_xm_member')->where( $where_us)->save($data_us);
+
+            }else{
+                $result2= false;
+            }
+
+        }else{
+            $user_sx = $user_data['balance'] -  $f_money;
+            if($user_sx>0){
+                $where_us['id']=  $user_id ;
+                $data_us['balance'] = $user_sx;
+                $result2=$model->table('qw_xm_member')->where( $where_us)->save($data_us);
+
+            }else{
+                $result2= false;
+            }
+        }
+
+if($result && $result2){
+    $model->commit();//成功则提交
+    $zjdata['is_zf']=1;
+    $where_cx['id']=$order_id;
+    $order_num =M('XmOrder')->where($where_cx)->getField('order_number');
+    $ml='订单'.$order_num.' 支付成功余额支付'. $f_money.' ,剩余余额为'.$user_sx;
+    $mlfm='-'.$f_money;
+    moneylog( $ml, $user_id,0,$mlfm,$user_sx,'余额',$order_id);
+   //可抢订单
+
+    $data_ro['order_id'] = $order_id;
+    $data_ro['create_time'] = time();
+    $data_ro['end_time'] = time() + $this->man_xx_time;
+    $data_ro['status'] =  1;
+    $data_ro['area'] = $data['target_area'];
+    $data_ro['user_id'] =  $user_id;
+    $Rorde = M("XmRobOrde")->add($data_ro); // 实例化User对象
+     if($Rorde){
+         $zjdata['is_xsdd']=1;
+     }else{
+         $zjdata['is_xsdd']=0;
+     }
+    returnApiSuccess('支付成功',$zjdata);
+}else{
+    $model->rollback();//不成功，则回滚
+    returnApiError( '支付失败');
+}
+    }
+
+
+//男性选择模块
+    public function ManChoice()
+    {
+
+        $order_id = isset($_POST['order_id']) ? trim($_POST['order_id']) : '';//订单id
+        $Muser=M("XmMember");
+        $Mcdata=M('XmGrabSingle');
+        $where['order_id']=  $order_id;
+        $where['start'] = 1;
+        $field='order_id,user_id';
+        $data=$Mcdata->field( $field)->where($where)->select();
+if( $data){
+    foreach( $data as $value){
+       $where_u['id']=$value['user_id'];
+       $field_u='o_username,height,weight,sex,video,Head';
+        $value['userdata']= $Muser->field($field_u)->where($where_u)->find();
+    $userdatas[]=$value;
+    }
+    returnApiSuccess('查询成功',$userdatas);
+}
+    }
+
+    //男性选择确认
+    public function ManChoiceqr()
+    {
+        $user_id = isset($_POST['user_id']) ? trim($_POST['user_id']) : '';//用户id
+        $order_id = isset($_POST['order_id']) ? trim($_POST['order_id']) : '';//订单id
+        $xz_id=isset($_POST['xz_id']) ? trim($_POST['xz_id']) : '';//已选择id
+        if( $xz_id==''){ returnApiError( '已选择id必须');}
+        if( $order_id==''){ returnApiError( '订单id必须');}
+        $where_xm['id']= $order_id;
+
+        //如果取消的就不能选择
+        $order_start=xm_order_start($order_id, $user_id);
+        if( $order_start=='-1'){
+            returnApiError( '无订单或者不是你的订单');
+        }else{
+            if($order_start==8){
+                returnApiError( '订单状态不正确');
+            }
+        }
+
+        $fenxzid=array_filter(explode(',',$xz_id));
+        $xz_count=count($fenxzid);
+        foreach($fenxzid as $value){
+            $where['user_id']=$value;
+            $where['order_id']= $order_id;
+            $data['is_qd_id']=1;
+            M('XmGrabSingle')->where($where)->save($data);
+        }
+      $data_o['xz_user_id']=$xz_id;
+      $data_o['xz_pe_num']= $xz_count;
+        $data_o['status']= 2;
+      $where_o['id'] =   $order_id ;
+
+      $data_s=M('XmOrder')->where($where_o)->save($data_o);
+
+        if($data_s){
+            returnApiSuccess('选择成功',$data_s);
+        }else{
+            returnApiError( '选择失败');
+        }
+    }
+
+
+//男性无选择退钱
+    public function ManNoChoice()
+    {
+        $user_id = isset($_POST['user_id']) ? trim($_POST['user_id']) : '';//用户id
+        $order_id = isset($_POST['order_id']) ? trim($_POST['order_id']) : '';//订单id
+        if( $order_id==''){ returnApiError( '订单id必须');}
+        $where_xm['id']= $order_id;
+        $firld_xm='user_id,status,money';
+        $gf_id=M('XmOrder')->field($firld_xm)->where($where_xm)->find();
+        if($gf_id['user_id']!= $user_id){returnApiError( '不是你的订单');}
+        if( $gf_id['status']!=2){returnApiError( '订单状态有异常');}
+        $order_money=$gf_id['money'];
+
+        $Model = M(); // 实例化一个空对象
+        $Model->startTrans(); // 开启事务
+        //改可选订单状态
+        $data_t_os['status']=8;
+        $result =$Model->table('qw_xm_order')->where($where_xm)->save($data_t_os);
+
+        //改用户金额
+        $where_c['id'] =  $user_id;
+        $field_c = 'is_jkuser,balance,jk_balance';
+            $userm=M('XmMember')->field($field_c)->where($where_c)->find();
+        $where_t_o['id']=$user_id;
+if( $userm['is_jkuser']==1){
+    //金卡用户
+    $data_t_o['jk_balance']=$userm['jk_balance']+ $order_money;
+
+    $result1 =$Model->table('qw_xm_member')->where($where_t_o)->save($data_t_o);
+
+}else{
+    $data_t_o['balance']=$userm['balance']+ $order_money;
+    $result1 =$Model->table('qw_xm_member')->where($where_t_o)->save($data_t_o);
+
+}
+        //修改可抢订单
+        $where_r_o['id']= $order_id;
+        $data_r_o['status']= 0;
+
+        $result2 =$Model->table('qw_xm_rob_orde')->where($where_r_o)->save($data_r_o);
+
+        //删除女性选择
+        $where_x_o['order_id']= $order_id;
+        $data_x_o['start']=0;
+        $result3 =$Model->table('qw_xm_grab_single')->where($where_x_o)->save($data_x_o);
+
+        if ($result && $result1 && $result2 && $result3) {
+            $Model->commit(); // 成功则提交事务
+            $where_cx['id']=$order_id;
+            $order_num =M('XmOrder')->where($where_cx)->getField('order_number');
+
+            if( $userm['is_jkuser']==1){
+                //金卡用户
+                $ml='订单'.$order_num.' 无选择，订单退款'. $order_money.' ,账号可用余额为'. $data_t_o['jk_balance'];
+                $mlfm=$data_t_o['jk_balance'];
+                moneylog( $ml, $user_id,5,$order_money,$mlfm,'余额',$order_id);
+            }else{
+                $ml='订单'.$order_num.' 无选择，订单退款'. $order_money.' ,账号可用余额为'. $data_t_o['balance'];
+                $mlfm=$data_t_o['balance'];
+                moneylog( $ml, $user_id,5,$order_money,$mlfm,'余额',$order_id);
+            }
+
+            returnApiSuccess('选择成功',1);
+
+        } else {
+
+            $Model->rollback(); // 否则将事务回滚
+            returnApiError( '退款失败');
+        }
+
+    }
+
+    //约会详情
+    public function ManDetailsDate()
+    {
+        $user_id = isset($_POST['user_id']) ? trim($_POST['user_id']) : '';//用户id
+        $order_id = isset($_POST['order_id']) ? trim($_POST['order_id']) : '';//订单id
+        if( $order_id==''){ returnApiError( '订单id必须');}
+        //订单状态
+        $order_start=xm_order_start($order_id, $user_id);
+        if( $order_start=='-1'){returnApiError( '无订单或者不是你的订单');}
+
+        $Model=M('XmOrder');
+        $where['id']= $order_id ;
+        $field='order_name,appointment_time,time_limit,appointment_dd,is_sex,is_drink,is_anonymous';
+        $data['order']=$Model->field($field)->where($where)->find();
+        $data['order']['start']=$order_start;
+
+
+        $ufield='nm,o_username,Head';
+        $xuer=xm_user($user_id,$ufield);
+        if($xuer==-1){
+            $data['user']='';
+        }else{
+            $data['user']= $xuer;
+        }
+        returnApiSuccess('订单详情', $data);
+    }
+
+ //点击确认完成订单女性分钱
+    public function ManCompleteOrder()
+    {
+        $user_id = isset($_POST['user_id']) ? trim($_POST['user_id']) : '';//用户id
+        $order_id = isset($_POST['order_id']) ? trim($_POST['order_id']) : '';//订单id
+        if( $order_id==''){ returnApiError( '订单id必须');}
+        //订单状态
+        $order_start=xm_order_start($order_id, $user_id);
+        if( $order_start=='-1'){returnApiError( '无订单或者不是你的订单');}
+        if( $order_start>5){returnApiError( '订单状态不正确');}
+
+
+        $where_o_c['id']= $order_id;
+        $field_o_c='money,xz_pe_num,xz_user_id';
+        $cx_data=M('XmOrder')->field($field_o_c)->where($where_o_c)->find();
+        //查询用户人数
+        $cx_r_s=$cx_data['xz_pe_num'];
+        //查询订单钱
+        $cx_r_money=$cx_data['money'];
+        //每个用户可以分到的钱
+        $money_f=floor($cx_r_money/$cx_r_s);
+
+
+        //查询用户
+        //查询用户等级
+        //查询用户比例
+        $cx_user=array_filter(explode(',',$cx_data['xz_user_id']));
+        foreach( $cx_user as $value ){
+            $userdata=xm_user($value,'women_grade,id,balance');
+            $userdata['bfb'] =  xm_women_draw($userdata['women_grade']);
+            $datas[]=$userdata;
+        }
+
+        $Model = M();
+        $Model->startTrans();
+      //改变订单状态
+        $where_o['id']= $order_id;
+        $data_o['status']=6;
+        $data_o['time_completion']=time();
+      $result=M('XmOrder')->where($where_o)->save($data_o);
+
+        //分钱
+
+       foreach( $datas as $key=>$value){
+              $where_f_u['id']= $value['id'];
+              $data_f_u['balance']=$value['balance']+$money_f;
+           //   $mz='result'.$key;
+              $result1 =  $Model->table('qw_xm_member')->where($where_f_u)->save($data_f_u);
+            if($result1){
+                $results = true;
+            }else{
+                $results = false;
+            }
+       }
+
+      if($result && $results){
+
+          $Model->commit(); // 成功则提交事务
+          //日志
+          foreach( $datas as $key=>$value){
+
+              $tcmoney=$value['balance']+$money_f;
+
+              $where_cx['id']=$order_id;
+              $order_num =M('XmOrder')->where($where_cx)->getField('order_number');
+
+
+                  $ml='订单'.$order_num.'获得提成'. $money_f.' ,账号可用余额为'. $tcmoney;
+
+                  moneylog( $ml, $value['id'],6,$money_f,$tcmoney,'余额',$order_id);
+
+          }
+
+          returnApiSuccess('订单已完成',1);
+
+      }else{
+          $Model->rollback(); // 否则将事务回滚
+          returnApiError( '改变订单完成失败');
+      }
+    }
+
+
 
 //。。。。。。。-----------------------------------------------------------------男性线下模块结束-------------------------------------------
     //-----------------------------------------------------------------男性模块结束-------------------------------------------
 
+    //-----------------------------------------------------------------女性模块开始-------------------------------------------
+    //女性抢单
+    public function WomenGrabOrder()
+    {
+        //查询订单是否过期改订单状态
+        $sj=time();
+        $data_sj['status']=0;
+        $where_sj['end_time']  = array('lt', $sj);
+        $Xro=M('XmRobOrde');
+        $Xro->where( $where_sj)->save($data_sj); // 根据条件更新记录
+
+        //清除过期菜单
+        $Xro->where('status=0')->delete(); // 删除所有状态为0的用户数据
+
+        //根据地区时间订单状态  女性是否是禁用时间
+        $user_id = isset($_POST['user_id']) ? trim($_POST['user_id']) : '';//用户id
+        $t = intval($_POST['t']) > 0 ?$_POST['t'] : '';//时间
+        $area = isset($_POST['area']) ? trim($_POST['area']) : '武汉';//用户id
+
+        $where_u['id']=$user_id;
+        $field='is_fwz,is_disable';
+        $data_u = M('XmMember')->field($field)->where( $where_u)->find();
+        if($data_u['is_fwz']==0){ returnApiError( '不是服务者');}
+        if($data_u['is_disable']==1){ returnApiError( '被禁用');}
 
 
+        //查询用订单
+        $where_o['status']=1;
+        $where_o['area']=$area;
+        $field_o='id,user_id';
+        $data_o=$Xro->field($field_o)->where($where_o)->limit(20)->select();
+     if($data_o){
+
+    foreach($data_o as $value){
+        if($value['type']){
+//线上
+        }else{
+            //线下
+            $where_os['id']=$value['id'];
+            $field_os='appointment_time,time_limit,appointment_dd,remarks,is_sex,people_num,money';
+            $value['order']=M('XmOrder')->field($field_os)->where($where_o)->find();
+            $where_ou['id']=$value['user_id'];
+            $field_ou='is_nm,nm,o_username,Head';
+            $value['user']=M('XmMember')->field($field_ou)->where($where_u)->find();
+            //抢订单状态
+            $where_qds['id']=$value['id'];
+            $field_os='order_id,is_qd_id';
+            $qddata=M('XmGrabSingle')->field($field_os)->where($where_o)->find();
+           if( $qddata['user_id']== $user_id){
+               $value['userstart']='已报名';
+               if($qddata['user_id']== 0){
+                   $value['userstart']='已报名';
+               }elseif($qddata['user_id']== 1){
+                   $value['userstart']='已被选中';
+               }else{
+                   $value['userstart']='订单被抢';
+               }
+           }else{
+               $value['userstart']='抢';
+           }
+
+        }
+$ddata[]=$value;
+    }
+
+         returnApiSuccess('支付成功',$ddata);
+}else{
+    returnApiError( '无数据');
+}
+
+    }
+
+    //女性点击抢单
+    public function WomenGrabs(){
+        $user_id = isset($_POST['user_id']) ? trim($_POST['user_id']) : '';//用户id
+        $order_id = isset($_POST['order_id']) ? trim($_POST['order_id']) : '';//订单id
+        //查看订单状态，过期
+        $ROrder=M('XmRobOrde');
+        $sj=time();
+        $where_or['end_time']  = array('lt', $sj);
+        $where_or['id']  =$order_id;
+        $dataR=$ROrder->where($where_or)->find();
+        if($dataR){ returnApiError( '订单已过期');}
+        //抢过的不能再抢
+        $where_qg['order_id']= $order_id;
+        $where_qg['user_id']=  $user_id;
+        $gsdata=M('XmGrabSingle');
+        $dataR=  $gsdata->where($where_qg)->find();
+        if($dataR){ returnApiError( '此订单已抢过');}
+        //添加
+        $where['order_id']=  $order_id;
+        $where['user_id']=  $user_id;
+        $where['add_time']= time();
+        $where['start']=  1;
+
+        $data=$gsdata->add($where);
+if($data){
+    returnApiSuccess('抢单成功',1);
+}else{
+    returnApiError( '抢单失败');
+}
+        //
+    }
+    //。。。。。。。-----------------------------------------------------------------女性线下模块开始-------------------------------------------
+    
+
+
+    //。。。。。。。-----------------------------------------------------------------女性线下模块结束-------------------------------------------
+    //-----------------------------------------------------------------女性模块结束-------------------------------------------
 
 
 

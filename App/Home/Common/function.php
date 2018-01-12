@@ -155,8 +155,112 @@ function make_coupon_card() {
 function build_order_no(){
     return date('Ymd').substr(implode(NULL, array_map('ord', str_split(substr(uniqid(), 7, 13), 1))), 0, 8);
 }
+
+
+/**
+ * 资金流水
+ * $user_id
+ * $order_id
+ * $content  内容
+ * $type 0是订单 1是礼品3充值4提现5退款6提成
+ * $user_balance 变动余额
+ * $zf_fs   支付方式
+ * $money
+ *
+ */
+function moneylog($content,$user_id,$type=0, $money,$user_balance,$zf_fs,$order_id){
+    $Model = M('XmMoneyFlow');
+    $data['t'] = time();
+    $data['content'] =$content;
+    $data['user_id'] =$user_id;
+    $data['type'] =$type;
+    $data['money'] =$money;
+    $data['user_balance'] =$user_balance;
+    $data['zf_type']=$zf_fs;
+    $data['order_id'] =$order_id;
+    $data['time_add'] =time();
+    if($order_id){
+        $where['id']=$order_id;
+        $data['order_num'] =M('XmOrder')->where($where)->getField('order_number');
+    }
+    $Model->data($data)->add();
+}
+
+
+/**
+ * 查询订单状态
+ * $order_id
+ * $user_id
+ */
+function xm_order_start($order_id,$user_id){
+    if(!isset($order_id)){ return  -2;}
+    if(!isset($user_id)){ return  -2;}
+
+    $where['id']=$order_id;
+    $where['user_id']=$user_id;
+    $data=M('XmOrder')->where($where)->getField('status');
+    if($data){
+        return  $data;
+    }else{
+        return  -1;
+    }
+}
+
+/**
+ * @param 个人信息
+ * @param bool $name
+ */
+function  xm_user($user_id,$field='*'){
+    if(!isset($user_id)){ return  -2;}
+    $where['id']=$user_id;
+    $data=M('XmMember')->field($field)->where($where)->find();
+    if($data){
+        return  $data;
+    }else{
+        return  -1;
+    }
+}
+
+/**
+ * @param 用户分钱的等级
+ * @param bool $name
+ *$user_dj 用户分成等级
+ */
+function xm_women_draw($user_dj){
+    if(!isset($user_dj)){ return  -2;}
+     $where['rank']=$user_dj;
+    $data=M('XmWomenDraw')->where($where)->getField('ratio');
+    if($data){
+        return  $data;
+    }else{
+        return  -1;
+    }
+}
 //------------------------------------------
 
+
+
+
+function addlog($log, $name = false)
+{
+    $Model = M('log');
+    if (!$name) {
+        session_start();
+        $uid = session('uid');
+        if ($uid) {
+            $user = M('member')->field('user')->where(array('uid' => $uid))->find();
+            $data['name'] = $user['user'];
+        } else {
+            $data['name'] = '';
+        }
+    } else {
+        $data['name'] = $name;
+    }
+    $data['t'] = time();
+    $data['ip'] = $_SERVER["REMOTE_ADDR"];
+    $data['log'] = $log;
+    $Model->data($data)->add();
+}
 /*
  * 广告
  * $region_id  城市id
