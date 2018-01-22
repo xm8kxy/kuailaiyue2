@@ -156,7 +156,9 @@ function build_order_no(){
     return date('Ymd').substr(implode(NULL, array_map('ord', str_split(substr(uniqid(), 7, 13), 1))), 0, 8);
 }
 
-
+// 生成短信验证码
+function generate_code($length = 6) {
+    return rand(pow(10,($length-1)), pow(10,$length)-1);}
 /**
  * 资金流水
  * $user_id
@@ -199,11 +201,27 @@ function xm_order_start($order_id,$user_id){
     $where['id']=$order_id;
     $where['user_id']=$user_id;
     $data=M('XmOrder')->where($where)->getField('status');
-    if($data){
-        return  $data;
-    }else{
+
+    if($data===NULL){
         return  -1;
+    }else{
+        return  $data;
     }
+}
+
+/**
+ *改变订单状态
+ *
+ */
+function xm_order_g_start($order_id,$start){
+    if(!isset($order_id)){ return false;}
+    if(!isset($start)){ return  false;}
+
+    $where['id']=$order_id;
+    $data['status']=$start;
+    $datas=M('XmOrder')->where($where)->save( $data);
+    return $datas;
+
 }
 
 /**
@@ -222,6 +240,120 @@ function  xm_user($user_id,$field='*'){
 }
 
 /**
+ * 查询个人可用金额如果是金卡返回金卡余额，如果不是返回普通余额
+ *
+ */
+function xm_is_jk_money($user_id){
+    $field="is_jkuser,jk_balance,balance";
+     $data= xm_user($user_id, $field);
+  if( $data['is_jkuser']){
+     //金卡用户
+return $data['jk_balance'];
+  }else{
+      return $data['balance'];
+  }
+
+}
+
+/**个人可用代金券
+ *
+ *
+ */
+function xm_ky_djj($user_id){
+    if(!isset($user_id)){ return false;}
+    $where['user_id']=$user_id;
+    $where['state']=0;
+$data=M('XmCoupon')->where($where)->find();
+    if($data){
+        return  $data;
+    }else{
+        return  false;
+    }
+
+}
+
+/**
+ * 男生线上需要花费的钱
+ */
+function xm_xs_kou_money($start,$end){
+    if(!isset($start)){ return false;}
+    if(!isset($end)){ return false;}
+    $time_add = $start;
+    $time_completion = $end;
+    //根据时间算时长
+    $time_limit = $time_completion - $time_add;
+    $second = floor($time_limit % 86400 % 60);//秒数
+    //少于3分钟扣10元
+    $minute = floor($time_limit / 60);//分钟数
+
+    if ($minute < 3) {
+        $kouqian = 10;
+    } elseif ($minute == 3) {
+        $kouqian = 10;
+        if ($second > 0) {
+            $kouqian = 12;
+        }
+    } else {
+        //多余3分钟，3分钟内扣10元，3分钟后每分钟扣2元
+        $kouqian = 10;
+        $shijian = $minute - 3;
+
+
+        $duoqian2 = 2 * $shijian;
+        $kouqian2 = $kouqian + $duoqian2;
+        if ($second > 0) {
+            $kouqian = $kouqian2 + 2;
+        }
+    }
+    return $kouqian;
+
+}
+
+/**
+ * 新用户男性送3分钟
+ */
+
+function xm_xsxuer_kou_money($start,$end){
+    if(!isset($start)){ return false;}
+    if(!isset($end)){ return false;}
+    $time_add = $start;
+    $time_completion = $end;
+    //根据时间算时长
+    $time_limit = $time_completion - $time_add;
+    $second = floor($time_limit % 86400 % 60);//秒数
+    //少于3分钟扣10元
+    $minute = floor($time_limit / 60);//分钟数
+    if ($minute < 3) {
+        $kouqian = 0;
+    } elseif ($minute == 3) {
+        $kouqian = 0;
+        if ($second > 0) {
+            $kouqian = 2;
+        }
+    } else {
+        //多余3分钟，3分钟内扣10元，3分钟后每分钟扣2元
+        $kouqian = 0;
+        $shijian = $minute - 3;
+        $duoqian2 = 2 * $shijian;
+        $kouqian2 = $kouqian + $duoqian2;
+        if ($second > 0) {
+            $kouqian = $kouqian2 + 2;
+        }
+    }
+    return $kouqian;
+}
+
+/**
+ * 女生线上要得的钱
+ */
+function xm_xs_de_money($manmoney,$dengji){
+    if(!isset($manmoney)){ return false;}
+    if(!isset($dengji)){ return false;}
+    $deqian =$manmoney* xm_women_draw($dengji);
+    return $deqian;
+}
+
+/**
  * @param 用户分钱的等级
  * @param bool $name
  *$user_dj 用户分成等级
@@ -236,6 +368,35 @@ function xm_women_draw($user_dj){
         return  -1;
     }
 }
+
+/**
+ * 根据分类id查分类名字
+ */
+function xm_fl_name($fl_id){
+    if(!isset($fl_id)){ return  -2;}
+    $where['id']=$fl_id;
+    $data=M('XmTrystClassify')->where($where)->getField('title');
+    if($data){
+        return  $data;
+    }else{
+        return  -1;
+    }
+}
+
+/**
+ * 获取头消息(系统好像有)
+ * */
+//function getallheaders(){
+//    foreach ($_SERVER as $name => $value)
+//    {
+//        if (substr($name, 0, 5) == 'HTTP_')
+//        {
+//            $headers[str_replace(' ', '-', ucwords(strtolower(str_replace('_', ' ', substr($name, 5)))))] = $value;
+//        }
+//    }
+//    return $headers;
+//}
+
 //------------------------------------------
 
 

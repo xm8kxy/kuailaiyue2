@@ -8,6 +8,8 @@ use Firebase\JWT\JWT;
 
 use XmClass\RndChinaName;
 use XmClass\Easemob;
+//require(C('Library')."/XmClass/Ucpassxm.class.php");
+use XmClass\Ucpassxm;
 
 class ApiController extends ComController
 {
@@ -16,10 +18,10 @@ class ApiController extends ComController
     private $man_xx_time; //线下发单限制时间
     private $options;//环信配置
 
-//       private $options['client_id']='YXA6j5xyMORUEee2UYE4debtsQ';
-//       private $options['client_secret']='YXA6C0vhpohfnQMBfQAzfK-XNiWu_Lc';
-//       private $options['org_name']='1134171215115606';
-//       private $options['app_name']='appointment';
+    private $sms_accountsid;
+    private $sms_token;
+    private $sms_templateid;
+    private $sms_appid;
 
     public function _initialize()
     {
@@ -29,15 +31,24 @@ class ApiController extends ComController
         header("Access-Control-Allow-Methods: POST");
         header("Access-Control-Allow-Credentials: true");
         header("Access-Control-Allow-Headers: Content-Type, X-Requested-With, Cache-Control,Authorization");
-        $this->token_xm='kly2018';
-        $this->key_xm='klyjwt';
-        $this->man_xx_time='600';//10分钟
 
-        $this->options['client_id']='YXA6j5xyMORUEee2UYE4debtsQ';
-        $this->options['client_secret']='YXA6C0vhpohfnQMBfQAzfK-XNiWu_Lc';
-        $this->options['org_name']='1134171215115606';
-        $this->options['app_name']='appointment';
+        $this->token_xm=C('token_xm');
+        $this->key_xm=C('key_xm');
+        $this->man_xx_time=C('man_xx_time');//10分钟
+        //sms
+        $this->sms_accountsid=C('sms_accountsid');
+        $this->sms_token=C('sms_token');
+        $this->sms_appid=C('sms_appid');
+        $this->sms_templateid=C('sms_templateid');
+
+        //环信
+        $this->options['client_id']=C('client_id');
+        $this->options['client_secret']=C('client_secret');
+        $this->options['org_name']=C('org_name');
+        $this->options['app_name']=C('app_name');
+
         //验证
+        $this->checkRequestAuth();
         $t = intval($_POST['t']) > 0 ?$_POST['t'] : '';//时间
         $xycs= isset($_POST['verify']) ? trim($_POST['verify']) : '';//mb5(时间+校验参数)
         $xycs_bd=  $this->token_xm;
@@ -46,7 +57,7 @@ class ApiController extends ComController
         if ($xycs == '') {returnApiError( '校验码必须！');}
     //    if ($verify!=$xycs){returnApiError( '非法数据');}
 
-//不用验证是方法
+       //不用验证是方法
         $no_dr=array();
         $no_dr[]='is_jwt';//jwt验证
         $no_dr[]='register';//注册
@@ -56,6 +67,8 @@ class ApiController extends ComController
         $no_dr[]='login'; //登入
         $no_dr[]='index'; //
         $no_dr[]='ManPostPaymentAudit'; //支付后调用验证
+        $no_dr[]='getSMSCode'; //发送短信
+
 
         if(!in_array(ACTION_NAME, $no_dr)){
             $user_id = isset($_POST['user_id']) ? trim($_POST['user_id']) : '';//用户id
@@ -70,39 +83,60 @@ class ApiController extends ComController
 
     }
 
+    public function checkRequestAuth() {
+        $headers =  getallheaders();
+        $app_type=explode(',',c('app_type'));
+        if(!in_array($headers['Apptype'], $app_type)) {
+           returnApiError( 'app_type不合法');
+        }
+
+    }
 
     public function index()
     {
 
-
-
         $h=new Easemob( $this->options);
+$data = $h-> isOnline(18644444444);
+         print_r($data['data'] );
        // print_r($h->createUser("xm4","123456"));exit;
 //        var_dump($h->createUser("xm","123456"));
    //     $this->display();
-        $from='xm';
-        $target_type="users";
-        //$target_type="chatgroups";
-        $target=array("18672995588","lisi","wangwu");
-        //$target=array("122633509780062768");
-        $aaa='{
-        "flag": "Success",
-        "msg": "登入成功",
-        "data": {
-            "id": "6",
-            "sex": "1",
-            "moblie": "15994221308",
-            "is_fwz": "0",
-            "is_nm": "0",
-            "nm": "",
-            "o_username": "帅哥",
-            "token": "eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJpZCI6IjYiLCJzZXgiOiIxIiwibW9ibGllIjoiMTU5OTQyMjEzMDgiLCJpc19md3oiOiIwIiwiaXNfbm0iOiIwIiwibm0iOiIiLCJvX3VzZXJuYW1lIjoiXHU1ZTA1XHU1NGU1In0.eXuyWDJu2VRumIZlOsd_zA1-5qETI3ZbtOLwrgkuZxA"
-        }
-    }';
-        $content="$aaa";
-        $ext['a']="a";
-        $ext['b']="b";
-        var_dump($h->sendText($from,$target_type,$target,$content,$ext));
+//        $from='admin';
+//        $target_type="users";
+//        //$target_type="chatgroups";
+//        $target=array("18627909358","lisi","wangwu");
+//        //$target=array("122633509780062768");
+//        $aaa='{
+//	"flag": "Success",
+//	"msg": "查询成功",
+//	"data": [{
+//		"order_id": "1",
+//		"user_id": "7",
+//		"userdata": {
+//			"o_username": "别b",
+//			"height": "000",
+//			"weight": "0",
+//			"sex": "1",
+//			"video": "",
+//			"head": ""
+//		}
+//	}, {
+//		"order_id": "1",
+//		"user_id": "7",
+//		"userdata": {
+//			"o_username": "别别别b",
+//			"height": "000",
+//			"weight": "0",
+//			"sex": "1",
+//			"video": "",
+//			"head": ""
+//		}
+//	}]
+//}';
+//        $content="$aaa";
+//        $ext['a']="a";
+//        $ext['b']="b";
+//        var_dump($h->sendText($from,$target_type,$target,$content,$ext));
     }
 
     /*验证jwt
@@ -135,35 +169,113 @@ class ApiController extends ComController
             } else {
                 $arr = json_decode(json_encode($decoded), true);
             }
-
-
             return $arr;
         }
     }
+
+
+
+
+    //短信发送
+    public function getSMSCode(){
+        $mobile =$_POST['mobile'];
+        if (empty($mobile)) {
+          returnApiError( '电话号码必须！');
+        }
+        $options['accountsid']=$this->sms_accountsid;
+        $options['token']= $this->sms_token;
+        $ucpass = new Ucpassxm($options);
+        $appid =  $this->sms_appid;	//应用的ID，可在开发者控制台内的短信产品下查看
+        $templateid = $this->sms_templateid;    //可在后台短信产品→选择接入的应用→短信模板-模板ID，查看该模板ID
+
+        $param = generate_code(); //多个参数使用英文逗号隔开（如：param=“a,b,c”），如为参数则留空
+        $mobile =  $mobile;
+        $uid = "";
+
+//70字内（含70字）计一条，超过70字，按67字/条计费，超过长度短信平台将会自动分割为多条发送。分割后的多条短信将按照具体占用条数计费。
+
+     $datas= $ucpass->SendSms($appid,$templateid,$param,$mobile,$uid);
+       $data_o= json_decode($datas,true);
+if($data_o['code']=='0'){
+            $data['cord'] = $param;
+            $data['time_add'] = $data_o['create_date'];
+            $data['mobile'] =$data_o['mobile'];
+            $smscode = D('XmCord');
+            $smscodeObj = $smscode->where("mobile='$mobile'")->find();
+            if($smscodeObj){
+                $data['content'] ='修改后的验证码';
+                $success = $smscode->where("mobile='$mobile'")->save($data);
+                if($success !== false){
+                    $smscodeObjs = $smscode->where("mobile='$mobile'")->find();
+                    $result = array(
+                        'code' => '0',
+                        'ext' => '修改成功',
+                        'obj' => $smscodeObjs
+                    );
+                }
+                returnApiSuccess('1',$result);
+            }else{
+                $data['content'] ='第一次使用验证码';
+                $id = $smscode->add($data);
+                if($id){
+                    $smscode_temp = $smscode->where("id='$id'")->find();
+                    $result = array(
+                        'code'=> '0',
+                        'ext'=> '创建成功',
+                        'obj'=>$smscode_temp
+                    );
+                    returnApiSuccess('1',$result);
+                }
+            }
+}else{
+    returnApiError( '发送失败');
+}
+
+    }
+
+
+
 
 
 //-------------------------------------------------------------注册部分开始--------------------------------------------
     //注册
     public function register()
     {
-
-        $moblie = isset($_POST['moblie']) ? trim($_POST['moblie']): '';//手机号
+        $moblie = isset($_POST['mobile']) ? trim($_POST['mobile']): '';//手机号
         $password = isset($_POST['password']) ? password(trim($_POST['password'])) : '';
+
+        $phone_vf = isset($_POST['phone_vf']) ? trim($_POST['phone_vf']) : '';//手机验证码
+        if(empty($phone_vf)){
+            returnApiError( '手机验证码不能为空');
+        }
+
 
 
         //验证
         if ($moblie == '') { returnApiError( '手机号必须！');}
         if ($password == '') {returnApiError( '密码必须！');}
 
+        $smscode = D('XmCord');
+        $smscodeObj = $smscode->where("mobile='$moblie'")->find();
+
+        if($smscodeObj){
+            if($smscodeObj['cord']!= $phone_vf){
+                returnApiError( '验证码错误');
+            }
+        }else{
+            returnApiError( '无验证码');
+        }
+
         $model = M("XmMember");
         $user = $model->field('id')->where(array('moblie' => $moblie))->find();
         if ($user) {
-            returnApiError( '手机号已注册');
+            returnApiError( '手机号已被注册');
         }else{
             //可以注册逻辑
             $data['moblie']= $moblie;
             $data['password']= $password;
             $data['code']= make_coupon_card();//邀请码
+            $data['kx_password']= trim($_POST['password']);
             //环信注册
             $h=new Easemob( $this->options);
             $hx=$h->createUser($moblie,trim($_POST['password']));
@@ -175,7 +287,7 @@ class ApiController extends ComController
 
             $tjcg=$model->add($data);
             if($tjcg){
-                returnApiSuccess('添加成功',$tjcg);
+                returnApiSuccess('注册成功',$tjcg);
             }else{
                 returnApiError( '添加失败');
            }
@@ -204,7 +316,6 @@ class ApiController extends ComController
     //确认选择性别和职业
     public function ziyeqr()
     {
-
         $sex= intval($_POST['sex']) > 0 ?$_POST['sex'] : '0';//性别
         $xzid=isset($_POST['xzid']) ? trim($_POST['xzid']) : '';//选择id
         $user_id = intval($_POST['user_id']) > 0 ?$_POST['user_id'] : '';//用户id
@@ -232,12 +343,12 @@ class ApiController extends ComController
     public function xmandage()
     {
         $username=isset($_POST['username']) ? trim($_POST['username']) : '';//姓名
-        $birth= intval($_POST['birth']) > 0 ?intval(trim($_POST['birth'])) : '0';//出生时间搓559238400
+        $birth=isset($_POST['birth'])?trim($_POST['birth']): '';//出生时间搓559238400
         $user_id = intval($_POST['user_id']) > 0 ?intval($_POST['user_id'])  : '';//用户id
 
         //验证
         if ($username == '') { returnApiError( '姓名必须！');}
-        if ($birth == 0) {returnApiError( '出生时间必须！');}
+        if ($birth == '') {returnApiError( '出生时间必须！');}
         if ( $user_id == '') { returnApiError( '用户id必须！');}
 
         //逻辑
@@ -259,7 +370,7 @@ class ApiController extends ComController
     public function login()
     {
 
-        $moblie = isset($_POST['moblie']) ? trim($_POST['moblie']) : '';
+        $moblie = isset($_POST['mobile']) ? trim($_POST['mobile']) : '';
         $password = isset($_POST['password']) ? password(trim($_POST['password'])) : '';
   //      $remember = isset($_POST['remember']) ? $_POST['remember'] : 0;短信
 
@@ -271,7 +382,15 @@ class ApiController extends ComController
 
         $model = M("XmMember");
         $user = $model->field('id')->where(array('moblie' => $moblie, 'password' => $password))->find();
+
         if ($user) {
+            //这个时候判断环信的有没有登入
+            $h=new Easemob( $this->options);
+            $data_user = $h-> isOnline($moblie);
+          if($data_user['data'][$moblie]=='offline'){
+              returnApiError('环信必须登入！');
+          }
+
             //将session_id存到数据库
 
             $where['id'] = $user['id'];
@@ -288,7 +407,7 @@ class ApiController extends ComController
 
             $data['token'] =  $jwt;
             returnApiSuccess('登入成功', $data);
-            exit(0);
+
         } else {
             returnApiError('手机号或密码有错误');
         }
@@ -298,18 +417,10 @@ class ApiController extends ComController
     //首页
     public function syindex()
     {
-//        //验证必须登入
-//        $user_id = isset($_POST['user_id']) ? trim($_POST['user_id']) : '';//用户id
-//        $str = isset($_POST['token']) ? trim($_POST['token']) : '';
-//        $key =  $this->key_xm;
-//        if ($user_id == '') { returnApiError( '用户id必须');}
-//        if ($str == '') { returnApiError( 'token必须');}
-//        if ($key == '') { returnApiError( 'key必须');}
-//        $this->is_jwt($str,$key,1,$user_id);
 
         $table="Flash";
         $field='id,pic,tp_sp';
-        $where['type']=3;
+        $where['sid']=3;
         $limit=3;
         $data=xm_gf($table,$field,$where,$limit);
         if($data){
@@ -333,19 +444,78 @@ class ApiController extends ComController
 
     }
 
-//  //视频验证
-//    public function PVideoValidation()
-//    {
-//        $user_id = isset($_POST['user_id']) ? trim($_POST['user_id']) : '';//用户id
-//        $str = isset($_POST['token']) ? trim($_POST['token']) : '';
-//        $key =  $this->key_xm;
-//        if ($user_id == '') { returnApiError( '用户id必须');}
-//        if ($str == '') { returnApiError( 'token必须');}
-//        if ($key == '') { returnApiError( 'key必须');}
-//        $this->is_jwt($str,$key,1,$user_id);
-//    }
-//
-//
+    //个人中心订单列表页
+    public function PCenterOrder()
+    {
+        $user_id = isset($_POST['user_id']) ? trim($_POST['user_id']) : '';//用户id
+        $type=isset($_POST['type']) ? trim($_POST['type']) : '';//分类不填是所有
+        if ( $type == '') {
+            returnApiError('分类必须要！');}
+        switch ($type)
+        {
+            case 1:
+
+                break;
+            case 2:
+                $where['type']=  array('in','3,4');
+                break;
+            case 3:
+                $where['type']=  array('in','2,5');
+
+                break;
+            case 3:
+                $where['type']= 6;
+                break;
+            case 4:
+                $where['type']= 7;
+                break;
+            case 5:
+                $where['type']= 8;
+                break;
+            default:
+
+        }
+
+        $modle=M('XmOrder');
+//        if($type){
+//            $where['type']= $type;
+//        }
+        $where['user_id']=  $user_id ;
+        $field='user_id,appointment_time,time_limit,appointment_dd,money,status,xz_user_id,order_name';
+        $data=$modle->field($field)->where($where)->select();
+      foreach($data as $k=>$value){
+          $cx_user = array_filter(explode(',', $value['xz_user_id']));
+          $userdata = xm_user($cx_user['0'], 'birth,Head,sex,o_username,id');
+      $value['user']=$userdata;
+      $datas[]=$value;
+      }
+        if($data){
+
+            returnApiSuccess('请求成功', $datas);
+        }else{
+            returnApiError('请求失败');
+        }
+ }
+
+
+
+
+
+  //视频验证展示
+    public function PVideoValidation()
+    {
+        $where['sid']=4;
+        $field='tp_sp,pic,title';
+        $data=M('Flash')->field( $field)->where($where)->find();
+        if($data){
+            returnApiSuccess('请求成功',$data);
+        }else{
+            returnApiError('请求失败');
+        }
+
+    }
+
+
 //    //添加约伴
 //    function  addgo(){
 //
@@ -469,14 +639,6 @@ class ApiController extends ComController
     public function ManDateTheme()
     {
         //验证必须登入
-//        $user_id = isset($_POST['user_id']) ? trim($_POST['user_id']) : '';//用户id
-//        $str = isset($_POST['token']) ? trim($_POST['token']) : '';
-//        $key =  $this->key_xm;
-//        if ($user_id == '') { returnApiError( '用户id必须');}
-//        if ($str == '') { returnApiError( 'token必须');}
-//        if ($key == '') { returnApiError( 'key必须');}
-//        $this->is_jwt($str,$key,1,$user_id);
-
         $table="XmTrystClassify";
         $field='*';
         $data=xm_gf($table,$field);
@@ -484,14 +646,16 @@ class ApiController extends ComController
 
         foreach( $data as $key=>$value){
            if($value['id']==1){
-               $value[w] = 320;
-               $value[h] = 360;
+               $value[w] = 480;
+               $value[h] = 540;
            }else{
-               $value[w] = 320;
-               $value[h] = 200;
+               $value[w] = 480;
+               $value[h] = 300;
            }
             $datas[]= $value;
         }
+
+
 
         if($data){
             returnApiSuccess('请求成功',$datas);
@@ -528,6 +692,8 @@ class ApiController extends ComController
          $data['order_number']= build_order_no(); //订单编号
          $data['user_id']= $user_id;//发起者用户id
          $data['classify']= $classify;//分类id
+         $data['order_name']= xm_fl_name($classify);//分类名字
+
          $data['appointment_time']=  $createtime;//约会时间
          $data['time_limit']= $time_limit;//约会时限
          $data['appointment_dd']= $appointment_dd;//约会地点
@@ -568,6 +734,61 @@ class ApiController extends ComController
         }
 
 }
+    //用户支付计算金额
+    public function ManPaymoney()
+    {
+        $user_id = isset($_POST['user_id']) ? trim($_POST['user_id']) : '';//用户id
+        $order_id = isset($_POST['order_id']) ? trim($_POST['order_id']) : '';//订单id
+
+        $order_start=xm_order_start($order_id, $user_id);
+        if( $order_start=='-1'){
+            returnApiError( '无订单或者不是你的订单');
+        }else{
+            if($order_start!=0&&$order_start!=4){
+                returnApiError( '订单状态不正确');
+            }
+        }
+        $where_o['id']= $order_id;
+        $zf_money=M('XmOrder')->where($where_o)->getField('money');
+
+        //查看用户是否有代金券
+        $djj=xm_ky_djj($user_id);
+if($djj){
+    //使用代金券后价格money
+$dj_money=  $djj['coupon_money'];
+
+    if($zf_money>$dj_money){
+        $zf_q=$zf_money-$dj_money;
+        $zf_moneys['zf_money']=$zf_q;
+        $zf_moneys['coupon_num']=$djj['coupon_num'];
+        $zf_moneys['coupon_id']=$djj['id'];
+        $zf_moneys['order_money']= $zf_money;
+        returnApiSuccess('查询成功', $zf_moneys);
+    }else{
+        $zf_moneys['zf_money']=0;
+        $zf_moneys['coupon_num']=$djj['coupon_num'];
+        $zf_moneys['coupon_id']=$djj['id'];
+        $zf_moneys['order_money']= $zf_money;
+        returnApiSuccess('查询成功', $zf_moneys);
+    }
+
+}else{
+    //如果没有返回订单原价
+    $zf_moneys['zf_money']=$zf_money;
+    $zf_moneys['coupon_num']=$djj['coupon_num'];
+    $zf_moneys['coupon_id']=$djj['id'];
+    $zf_moneys['order_money']= $zf_money;
+    returnApiSuccess('查询成功', $zf_moneys);
+
+}
+
+
+
+
+    }
+
+    
+
  //支付前审核
     public function ManPaymentExamine()
     {
@@ -575,8 +796,9 @@ class ApiController extends ComController
         $order_id = isset($_POST['order_id']) ? trim($_POST['order_id']) : '';//订单id
         $f_money= intval($_POST['money']) > 0 ?intval(trim($_POST['money'])) : '0';//金额
         $zffs= intval($_POST['zffs']) > 0 ?intval(trim($_POST['zffs'])) : '1';//支付方式1是余额2是微信3是支付宝
+
         if($f_money==0){ returnApiError( '金额必须');}
-        $Oerder = M("XmOrder"); // 实例化User对象
+        $Oerder = M("XmOrder"); //实例化User对象
         $where['order_id']= $order_id;
         $field='money,status';
         $data = $Oerder->field($field)->where($where)->find();
@@ -586,7 +808,7 @@ if($data['status']=='0'){
     $where_u['id']=  $user_id ;
     $field_u='balance,jk_balance,is_jkuser';
     $user_data = M('XmMember')->field($field_u)->where($where_u)->find();
-    if($data['money'] != $f_money ){  returnApiError( '订单价格不正确');}
+  //  if($data['money'] != $f_money ){  returnApiError( '订单价格不正确');}
     if($zffs==1){
         //余额
         if($user_data['is_jkuser']==1){
@@ -615,6 +837,8 @@ if($data['status']=='0'){
 
     }
 
+
+
     //其它支付支付后返回改状态
     public function ManPostPaymentAudit()
     {
@@ -630,7 +854,7 @@ if($data['status']=='0'){
        $user_id = isset($_POST['user_id']) ? trim($_POST['user_id']) : '';//用户id
        $order_id = isset($_POST['order_id']) ? trim($_POST['order_id']) : '';//订单id
         $f_money= intval($_POST['money']) > 0 ?intval(trim($_POST['money'])) : '0';//金额
-
+        $coupon_id = isset($_POST['coupon_id']) ? trim($_POST['coupon_id']) : '';//优惠卷id
 
 //
 //        if($f_money==0){ returnApiError( '金额必须');}
@@ -652,7 +876,20 @@ if($data['status']=='0'){
         $field='money,status,target_area';
         $data = $Oerder->field($field)->where($where)->find();
 //        if($data['status']>0){returnApiError( '订单已支付');}
-//        if($data['money'] != $f_money ){  returnApiError( '订单价格不正确');}
+        //如果有代金券，支付钱加上代金券
+        if($coupon_id){
+           $where_s_d['id']=$coupon_id;
+            $field_s_d="coupon_money,state";
+            $data_s_d=M('XmCoupon')->field($field_s_d)->where($where_s_d)->find();
+            if( $data_s_d['state']>0){
+                returnApiError( '代金券状态有问题');
+            }else{
+             //   if($data['money'] != $f_money+ $data_s_d['coupon_money'] ){  returnApiError( '订单价格不正确');}
+            }
+        }else{
+            //        if($data['money'] != $f_money ){  returnApiError( '订单价格不正确');}
+        }
+
         //改变订单状态,
         $model = M();
 //        $m=D('XmOrder');
@@ -660,6 +897,11 @@ if($data['status']=='0'){
         $model->startTrans();
         $where_dd['id']= $order_id;
         $data_dd['status'] = '1';
+        if( $data_s_d['state']<1){
+            $data_dd['is_user_coupon']=1;
+            $data_dd['coupon_id']=$coupon_id;
+            //代金券用完要改状态2.0加
+        }
         $result=$model->table('qw_xm_order')->where($where_dd)->save($data_dd);
 
         //扣个人钱
@@ -716,6 +958,8 @@ if($result && $result2){
     returnApiError( '支付失败');
 }
     }
+
+
 
 
 //男性选择模块
@@ -887,85 +1131,230 @@ if( $userm['is_jkuser']==1){
     {
         $user_id = isset($_POST['user_id']) ? trim($_POST['user_id']) : '';//用户id
         $order_id = isset($_POST['order_id']) ? trim($_POST['order_id']) : '';//订单id
-        if( $order_id==''){ returnApiError( '订单id必须');}
+        if ($order_id == '') {
+            returnApiError('订单id必须');
+        }
         //订单状态
-        $order_start=xm_order_start($order_id, $user_id);
-        if( $order_start=='-1'){returnApiError( '无订单或者不是你的订单');}
-        if( $order_start>5){returnApiError( '订单状态不正确');}
+        $order_start = xm_order_start($order_id, $user_id);
+        if ($order_start == '-1') {
+            returnApiError('无订单或者不是你的订单');
+        }
+        if ($order_start > 5) {
+            returnApiError('订单状态不正确');
+        }
 
-
-        $where_o_c['id']= $order_id;
-        $field_o_c='money,xz_pe_num,xz_user_id';
-        $cx_data=M('XmOrder')->field($field_o_c)->where($where_o_c)->find();
+        $where_o_c['id'] = $order_id;
+        $field_o_c = 'money,xz_pe_num,xz_user_id';
+        $cx_data = M('XmOrder')->field($field_o_c)->where($where_o_c)->find();
         //查询用户人数
-        $cx_r_s=$cx_data['xz_pe_num'];
+        $cx_r_s = $cx_data['xz_pe_num'];
         //查询订单钱
-        $cx_r_money=$cx_data['money'];
+        $cx_r_money = $cx_data['money'];
         //每个用户可以分到的钱
-        $money_f=floor($cx_r_money/$cx_r_s);
-
+        $money_f = floor($cx_r_money / $cx_r_s);
 
         //查询用户
         //查询用户等级
         //查询用户比例
-        $cx_user=array_filter(explode(',',$cx_data['xz_user_id']));
-        foreach( $cx_user as $value ){
-            $userdata=xm_user($value,'women_grade,id,balance');
-            $userdata['bfb'] =  xm_women_draw($userdata['women_grade']);
-            $datas[]=$userdata;
+        $cx_user = array_filter(explode(',', $cx_data['xz_user_id']));
+        foreach ($cx_user as $value) {
+            $userdata = xm_user($value, 'women_grade,id,balance');
+            $userdata['bfb'] = xm_women_draw($userdata['women_grade']);
+            $datas[] = $userdata;
         }
-
         $Model = M();
         $Model->startTrans();
-      //改变订单状态
-        $where_o['id']= $order_id;
-        $data_o['status']=6;
-        $data_o['time_completion']=time();
-      $result=M('XmOrder')->where($where_o)->save($data_o);
-
+        //改变订单状态
+        $where_o['id'] = $order_id;
+        $data_o['status'] = 6;
+        $data_o['time_completion'] = time();
+        $result = M('XmOrder')->where($where_o)->save($data_o);
         //分钱
-
-       foreach( $datas as $key=>$value){
-              $where_f_u['id']= $value['id'];
-              $data_f_u['balance']=$value['balance']+$money_f;
-           //   $mz='result'.$key;
-              $result1 =  $Model->table('qw_xm_member')->where($where_f_u)->save($data_f_u);
-            if($result1){
+        foreach ($datas as $key => $value) {
+            $where_f_u['id'] = $value['id'];
+            $data_f_u['balance'] = $value['balance'] + $money_f;
+            //   $mz='result'.$key;
+            $result1 = $Model->table('qw_xm_member')->where($where_f_u)->save($data_f_u);
+            if ($result1) {
                 $results = true;
-            }else{
+            } else {
                 $results = false;
             }
-       }
+        }
+        if ($result && $results) {
 
-      if($result && $results){
-
-          $Model->commit(); // 成功则提交事务
-          //日志
-          foreach( $datas as $key=>$value){
-
-              $tcmoney=$value['balance']+$money_f;
-
-              $where_cx['id']=$order_id;
-              $order_num =M('XmOrder')->where($where_cx)->getField('order_number');
-
-
-                  $ml='订单'.$order_num.'获得提成'. $money_f.' ,账号可用余额为'. $tcmoney;
-
-                  moneylog( $ml, $value['id'],6,$money_f,$tcmoney,'余额',$order_id);
-
-          }
-
-          returnApiSuccess('订单已完成',1);
-
-      }else{
-          $Model->rollback(); // 否则将事务回滚
-          returnApiError( '改变订单完成失败');
-      }
+            $Model->commit(); // 成功则提交事务
+            //日志
+            foreach ($datas as $key => $value) {
+                $tcmoney = $value['balance'] + $money_f;
+                $where_cx['id'] = $order_id;
+                $order_num = M('XmOrder')->where($where_cx)->getField('order_number');
+                $ml = '订单' . $order_num . '获得提成' . $money_f . ' ,账号可用余额为' . $tcmoney;
+                moneylog($ml, $value['id'], 6, $money_f, $tcmoney, '余额', $order_id);
+            }
+            returnApiSuccess('订单已完成', 1);
+        } else {
+            $Model->rollback(); // 否则将事务回滚
+            returnApiError('改变订单完成失败');
+        }
     }
+
+//评价页面
+//    public function ManAssess()
+//    {
+//        $user_id = isset($_POST['user_id']) ? trim($_POST['user_id']) : '';//用户id
+//        $order_id = isset($_POST['order_id']) ? trim($_POST['order_id']) : '';//订单id
+//        if ($order_id == '') {
+//            returnApiError('订单id必须');
+//        }
+//        //订单状态
+//        $order_start = xm_order_start($order_id, $user_id);
+//        if ($order_start == '-1') {
+//            returnApiError('无订单或者不是你的订单');
+//        }
+//        if ($order_start >6) {
+//            returnApiError('订单状态不正确');
+//        }
+//
+//        $where['sex']=1;
+//        $where['type']=array('gt',1);
+//        $field='o_username,type';
+//       $data=M('XmTab')->field($field)->where($where)->select();
+//
+//        if( $data){
+//            returnApiSuccess('请求成功', $data);
+//        }else{
+//            returnApiError('请求失败');
+//        }
+//
+//    }
+
+//确认评价
+    public function ManAssessqw()
+    {
+
+        $user_id = isset($_POST['user_id']) ? trim($_POST['user_id']) : '';//用户id
+        $order_id = isset($_POST['order_id']) ? trim($_POST['order_id']) : '';//订单id
+        $contents=isset($_POST['content']) ? trim($_POST['content']) : '';//评价内容
+        $o_type=isset($_POST['o_type']) ? intval(trim($_POST['o_type'])) : '1';//线上线下
+        $c_type=isset($_POST['c_type']) ? intval(trim($_POST['c_type'])) : '0';//好差评类型 0是中评1是好评2是差评',
+
+        if ($order_id == '') {
+            returnApiError('订单id必须');
+        }
+        //订单状态
+        $order_start = xm_order_start($order_id, $user_id);
+        if ($order_start == '-1') {
+            returnApiError('无订单或者不是你的订单');
+        }
+        if ($order_start  !=  6  ) {
+            returnApiError('订单状态不正确');
+        }
+
+        //
+        $where['id']= $order_id;
+        $data['offline_type']=$o_type;
+        $data['comment_type']= $c_type;
+      //轮询
+       $rx = M('XmOrder')->where($where)->getField('xz_user_id');
+        $rx_user = array_filter(explode(',',$rx));
+        foreach ($rx_user as $value) {
+            $data['user_id']=$value;
+            $cx_user = array_filter(explode(',', $contents));
+            foreach ($cx_user as $value) {
+                $data['content']= $value;
+                M('XmComment')->add($data);
+            }
+        }
+        $cg = xm_order_g_start($order_id,7);
+        if($cg){
+            returnApiSuccess('请求成功', $cg);
+        }else{
+            returnApiError('请求失败');
+        }
+
+}
 
 
 
 //。。。。。。。-----------------------------------------------------------------男性线下模块结束-------------------------------------------
+
+//。。。。。。。-----------------------------------------------------------------男性线上模块开始-------------------------------------------
+//男性查询余额
+    public function ManSelectMoney()
+    {
+        $user_id = isset($_POST['user_id']) ? trim($_POST['user_id']) : '';//用户id
+        $usermoney =  xm_is_jk_money($user_id);//用户可用钱
+        if($usermoney<10){  returnApiError('余额不足请充值');}
+}
+
+//正常线上扣费
+    public function ManOnlineMomey()
+    {
+        $user_id = isset($_POST['user_id']) ? trim($_POST['user_id']) : '';//用户id
+        $order_id = isset($_POST['order_id']) ? trim($_POST['order_id']) : '';//订单id
+        $time_add = isset($_POST['time_add']) ? trim($_POST['time_add']) : '';//发起时间
+        $time_completion = isset($_POST['time_completion']) ? trim($_POST['time_completion']) : '';//结束时间
+        $guanduan_id = isset($_POST['guanduan_id']) ? trim($_POST['guanduan_id']) : '';//挂断人id
+
+        if ($order_id == '') {returnApiError('订单id必须');}
+        if ($user_id == '') {returnApiError('用户必须');}
+        if ($time_add == '') {returnApiError('发起时间必须');}
+        if ($time_completion == '') {returnApiError('结束时间必须');}
+
+        //订单状态
+        $order_start = xm_order_start($order_id, $user_id);
+        if ($order_start == '-1') {
+            returnApiError('无订单或者不是你的订单');
+        }
+//是不是新用户
+      $userdata=  xm_user( $user_id,'is_news,is_jkuser');
+        if( $userdata['is_news']){
+            $kouqian =  xm_xsxuer_kou_money( $time_add , $time_completion);
+        }else{
+            $kouqian =  xm_xs_kou_money( $time_add , $time_completion);
+        }
+        $yumoney= xm_is_jk_money($user_id);
+        if($yumoney< $kouqian){
+          returnApiError('余额不足');
+    //异常订单2.0添加
+        }
+
+//男方扣钱 女方得钱  改订单状态
+
+$Model = M();
+$Model->startTrans();
+ $where_m_k['id']= $user_id;
+if($userdata['is_jkuser']){
+    $data_m_k['jk_balance']=$yumoney - $kouqian;
+    $result1 =$Model->table('qw_xm_member')->where($where_m_k)->save($data_m_k);
+}else{
+    $data_m_k['balance']=$yumoney - $kouqian;
+    $result1 =$Model->table('qw_xm_member')->where($where_m_k)->save($data_m_k);
+}
+  // 订单女性id
+        $where_w_o['id']= $order_id;
+        $women_id =M('XmOrder')->where($where_w_o)->getField('xz_user_id');
+        $where_w_d['id']= $women_id;
+        $women_money =M('XmMember')->where($where_w_d)->getField('balance');
+        $women_w_d['balance']=$women_money + $kouqian;
+        $result2 =$Model->table('qw_xm_member')->where($where_w_d)->save($women_w_d);
+
+    //order
+        $where_o_d['id']=$order_id;
+        $data_o['status']='6';
+        $data_o['guanduan_id']=$guanduan_id;
+        $data_o['time_completion']=$time_completion;
+        $result3 =$Model->table('qw_xm_order')->where($where_o_d)->save($data_o);
+
+
+    }
+
+
+//。。。。。。。-----------------------------------------------------------------男性线上模块结束-------------------------------------------
+
+
+
     //-----------------------------------------------------------------男性模块结束-------------------------------------------
 
     //-----------------------------------------------------------------女性模块开始-------------------------------------------
@@ -1111,718 +1500,4 @@ if($data){
 //    }
 
 
-//新闻媒体行业列表页
-    function xwmtlb(){
-        verifys($_POST['verify']);
-        $p = intval($_POST['p']) > 0 ?$_POST['p'] : 1;
-
-        $pid=22;
-        $tjmsdata = articledata('aid,title,description,thumbnail,t',$pid,page($p));
-        $zs= zongshu($pid);
-if($tjmsdata){
-    $data['nr']= $tjmsdata;
-    $data['zs']= $zs;
-    returnApiSuccess('1',  $data);
-}else{
-    returnApiError( '无数据');
-}
-
-
-    }
-//新闻媒体公司列表页
-    function xwmtgslb(){
-        verifys($_POST['verify']);
-        $p = intval($_POST['p']) > 0 ?$_POST['p'] : 1;
-
-        $pid=23;
-        $tjmsdata = articledata('aid,title,description,thumbnail,t',$pid,page($p));
-        $zs= zongshu($pid);
-        if($tjmsdata){
-            $data['nr']= $tjmsdata;
-            $data['zs']= $zs;
-            returnApiSuccess('1',  $data);
-        }else{
-            returnApiError( '无数据');
-        }
-
-
-    }
-//房车销售列表页
-    function fcxslb(){
-        verifys($_POST['verify']);
-        $p = intval($_POST['p']) > 0 ?$_POST['p'] : 1;
-
-        $pp= isset($_POST['pp']) ? trim($_POST['pp']) : '';//品牌
-        $maxpr= isset($_POST['maxpr']) ? intval(trim($_POST['maxpr'])) : '200';//最大价格
-        $mixpr= isset($_POST['mixpr']) ? intval(trim($_POST['mixpr'])) : '10';//最小价格
-        $leibei=intval($_POST['leibei']) > 0 ?$_POST['leibei'] : 0;
-
-
-        $pid=34;
-        $fsl=12;//每页显示数量
-        if(!empty($pp)){
-            $where['pingpai']=$pp;
-        }
-        if(!empty($maxpr)&&!empty($mixpr)){
-            $where['jiage']=array('between',array($mixpr,$maxpr));
-        }
-        if(!empty( $leibei)){
-            $where['leixing']= $leibei;
-        }
-        $tjmsdata = articlewhere('aid,title,description,thumbnail,t,jiage,danwei',$pid,page($p,$fsl),$where);
-        //  echo M("article")->getLastSql();exit;
-        $zs= zongshu($pid,$fsl);
-        if($tjmsdata){
-            $data['nr']= $tjmsdata;
-            $data['zs']= $zs;
-            returnApiSuccess('1',  $data);
-        }else{
-            returnApiError( '无数据');
-        }
-
-
-    }
-
-
-//二手房车列表页
-    function esfclb(){
-        verifys($_POST['verify']);
-        $p = intval($_POST['p']) > 0 ?$_POST['p'] : 1;
-
-        $pp= isset($_POST['pp']) ? trim($_POST['pp']) : '';//品牌
-        $maxpr= isset($_POST['maxpr']) ? intval(trim($_POST['maxpr'])) : '200';//最大价格
-        $mixpr= isset($_POST['mixpr']) ? intval(trim($_POST['mixpr'])) : '10';//最小价格
-        $leibei=intval($_POST['leibei']) > 0 ?$_POST['leibei'] : 0;
-
-
-        $pid=16;
-        $fsl=12;//每页显示数量
-        if(!empty($pp)){
-            $where['pingpai']=$pp;
-        }
-        if(!empty($maxpr)&&!empty($mixpr)){
-            $where['jiage']=array('between',array($mixpr,$maxpr));
-        }
-        if(!empty( $leibei)){
-            $where['leixing']= $leibei;
-        }
-        $tjmsdata = articlewhere('aid,title,description,thumbnail,t,jiage,danwei',$pid,page($p,$fsl),$where);
-        //  echo M("article")->getLastSql();exit;
-        $zs= zongshu($pid,$fsl);
-        if($tjmsdata){
-            $data['nr']= $tjmsdata;
-            $data['zs']= $zs;
-            returnApiSuccess('1',  $data);
-        }else{
-            returnApiError( '无数据');
-        }
-
-
-    }
-
-
-
-
-
-//房车租凭列表页
-    function fczplb(){
-        verifys($_POST['verify']);
-        $p = intval($_POST['p']) > 0 ?$_POST['p'] : 1;
-
-        $pp= isset($_POST['pp']) ? trim($_POST['pp']) : '';//品牌
-        $maxpr= isset($_POST['maxpr']) ? intval(trim($_POST['maxpr'])) : '200';//最大价格
-        $mixpr= isset($_POST['mixpr']) ? intval(trim($_POST['mixpr'])) : '10';//最小价格
-        $leibei=intval($_POST['leibei']) > 0 ?$_POST['leibei'] : 0;
-
-
-        $pid=7;
-        $fsl=12;//每页显示数量
-        if(!empty($pp)){
-            $where['pingpai']=$pp;
-        }
-        if(!empty($maxpr)&&!empty($mixpr)){
-            $where['jiage']=array('between',array($mixpr,$maxpr));
-        }
-        if(!empty( $leibei)){
-            $where['leixing']= $leibei;
-        }
-        $tjmsdata = articlewhere('aid,title,description,thumbnail,t,jiage,danwei',$pid,page($p,$fsl),$where);
-        //  echo M("article")->getLastSql();exit;
-        $zs= zongshu($pid,$fsl);
-        if($tjmsdata){
-            $data['nr']= $tjmsdata;
-            $data['zs']= $zs;
-            returnApiSuccess('1',  $data);
-        }else{
-            returnApiError( '无数据');
-        }
-
-
-    }
-
-//户外装备列表页
-    function hwzblb(){
-        verifys($_POST['verify']);
-        $p = intval($_POST['p']) > 0 ?$_POST['p'] : 1;
-
-        $pp= isset($_POST['pp']) ? trim($_POST['pp']) : '';//品牌
-        $maxpr= isset($_POST['maxpr']) ? intval(trim($_POST['maxpr'])) : '200';//最大价格
-        $mixpr= isset($_POST['mixpr']) ? intval(trim($_POST['mixpr'])) : '10';//最小价格
-        $leibei=intval($_POST['leibei']) > 0 ?$_POST['leibei'] : 0;
-
-
-        $pid=5;
-        $fsl=12;//每页显示数量
-        if(!empty($pp)){
-            $where['pingpai']=$pp;
-        }
-        if(!empty($maxpr)&&!empty($mixpr)){
-            $where['jiage']=array('between',array($mixpr,$maxpr));
-        }
-        if(!empty( $leibei)){
-            $where['leixing']= $leibei;
-        }
-        $tjmsdata = articlewhere('aid,title,description,thumbnail,t,jiage,danwei',$pid,page($p,$fsl),$where);
-        //  echo M("article")->getLastSql();exit;
-        $zs= zongshu($pid,$fsl);
-        if($tjmsdata){
-            $data['nr']= $tjmsdata;
-            $data['zs']= $zs;
-            returnApiSuccess('1',  $data);
-        }else{
-            returnApiError( '无数据');
-        }
-
-
-    }
-
-//营房设计选项
-    function  yfsjxx(){
-        verifys($_POST['verify']);
-        $v='ydsjcs';
-        $cs=zdybl($v);
-        $cs=explode("、",trim($cs,'、'));
-        $data['cs']=$cs;
-        $v='jdsjjg';
-        $jg=zdybl($v);
-        $jg=explode("、",trim($jg,'、'));
-        $data['jg']=$jg;
-        returnApiSuccess('1',  $data);
-    }
-
-
-    //营房设计列表页
-    function yfsjlb(){
-        verifys($_POST['verify']);
-        $p = intval($_POST['p']) > 0 ?$_POST['p'] : 1;
-
-        $pp= isset($_POST['pp']) ? trim($_POST['pp']) : '';//城市
-        $maxpr= isset($_POST['maxpr']) ? intval(trim($_POST['maxpr'])) : '200';//最大价格
-        $mixpr= isset($_POST['mixpr']) ? intval(trim($_POST['mixpr'])) : '10';//最小价格
-        $leibei=intval($_POST['leibei']) > 0 ?$_POST['leibei'] : 0;
-
-
-        $pid=35;
-        $fsl=12;//每页显示数量
-        if(!empty($pp)){
-            $where['city']=$pp;
-        }
-        if(!empty($maxpr)&&!empty($mixpr)){
-            $where['jiage']=array('between',array($mixpr,$maxpr));
-        }
-        if(!empty( $leibei)){
-            $where['type']= $leibei;
-        }
-        $tjmsdata = articlewhere('aid,title,description,thumbnail,t,jiage,danwei',$pid,page($p,$fsl),$where);
-        //  echo M("article")->getLastSql();exit;
-        $zs= zongshu($pid,$fsl);
-        if($tjmsdata){
-            $data['nr']= $tjmsdata;
-            $data['zs']= $zs;
-            returnApiSuccess('1',  $data);
-        }else{
-            returnApiError( '无数据');
-        }
-
-
-    }
-
-    //常见问题
-    function cjwtlb(){
-        verifys($_POST['verify']);
-        $p = intval($_POST['p']) > 0 ?$_POST['p'] : 1;
-
-        $where['sid']=array('in',array('29','30','31'));
-        $field='aid,title,t,sid';
-        $order="t desc";
-
-         $tjmsdata = M('article')->field($field)->where($where)->limit(page($p))->order($order)->select();
-
-        //  echo M("article")->getLastSql();exit;
-        $zs= M('article')->field($field)->where($where)->count();
-        $zs=ceil($zs/10);
-        if($tjmsdata){
-            foreach( $tjmsdata as $v){
-                $wherec['id']=$v['sid'];
-                $lmz =M('category')->field('name')->where($wherec)->find();
-
-                $v['leimz']=$lmz['name'];
-$datas[]=$v;
-            };
-
-            $data['nr']= $datas;
-            $data['zs']= $zs;
-            returnApiSuccess('1',  $data);
-        }else{
-            returnApiError( '无数据');
-        }
-    }
-
-
-//首页
-    function home_page(){
-        verifys($_POST['verify']);
-
-//        //公告图
-//        $tjmsdata = M('flash')->field("id,title,url,pic")->limit(4)->select();
-//        $data['ad0']=$tjmsdata;
-
-//关于我们
-$data['xywm1']=categorydye('content','26');
-
-
-//房车销售
-        $tjmsdata = articlewhere('aid,title,description,thumbnail,t,jiage,danwei',34,6);
-        $data['fcxs2']=$tjmsdata;
-//二手车房
-        $tjmsdata = articlewhere('aid,title,description,thumbnail,t,jiage,danwei',16,6);
-        $data['escf2']=$tjmsdata;
-//房车租凭
-        $tjmsdata = articlewhere('aid,title,description,thumbnail,t,jiage,danwei',7,6);
-        $data['fwzp2']=$tjmsdata;
- //户外装备
-        $tjmsdata = articlewhere('aid,title,description,thumbnail,t,jiage,danwei',5,6);
-        $data['hwzb2']=$tjmsdata;
-//营地设计
-        $tjmsdata = articlewhere('aid,title,description,thumbnail,t,jiage,danwei',35,6);
-        $data['ydsj2']=$tjmsdata;
-
-//专家顾问
-        $tjmsdata = articlewhere('aid,title,description,thumbnail,t',27,2);
-        $data['zjgw3']=$tjmsdata;
-
-        //常见问题
-        //房车销售
-        $tjmsdata = articlewhere('aid,title,description,thumbnail,t',29,6);
-        $data['fcxs3']=$tjmsdata;
-        //房车改装售后
-        $tjmsdata = articlewhere('aid,title,description,thumbnail,t',30,6);
-        $data['fcgzsh3']=$tjmsdata;
-        //营房设计
-        $tjmsdata = articlewhere('aid,title,description,thumbnail,t',31,6);
-        $data['yfsj3']=$tjmsdata;
-
-       //活动体验
-        //用自驾心得
-        $tjmsdata = articlewhere('aid,title,description,thumbnail,t',20,1);
-        $data['hdty4']=$tjmsdata;
-        //视频中心
-        $tjmsdata = articlewhere('aid,title,description,thumbnail,t',37,8);
-        $data['spzx4']=$tjmsdata;
-        //新闻媒体
-        //用行业动态
-        $tjmsdata = articlewhere('aid,title,description,thumbnail,t',22,8);
-        $data['hydt4']=$tjmsdata;
-
-        //活动公告
-        $data['hdgg5']=articlewhere('aid,title,description,thumbnail,t',18,1);
-        //历史活动
-        $tjmsdata = articlewhere('aid,title,description,thumbnail,t',19,6);
-        $data['lshd5']=$tjmsdata;
-
-        //会员风采
-        $tjmsdata = articlewhere('aid,title,thumbnail,t',32,8);
-        $data['hyfc6']=$tjmsdata;
-        //合作品牌
-        $tjmsdata = articlewhere('aid,title,thumbnail,t',11,8);
-        $data['hzpp6']=$tjmsdata;
-        //友情链接
-        $tjmsdata = M('links')->limit(8)->select();
-        $data['yqlj6']=$tjmsdata;
-        returnApiSuccess('1',  $data);
-}
-
-
-
-
-    //空操作
-    public function _empty($name){
-        returnApiError( '无方法');
-    }
-
-
-
-    /*
-    //一些前台DEMO
-    //单页
-    public function single($aid){
-
-        $aid = intval($aid);
-        $article = M('article')->where('aid='.$aid)->find();
-        $this->assign('article',$article);
-        $this->assign('nav',$aid);
-        $this -> display();
-    }
-    //文章
-    public function article($aid){
-
-        $aid = intval($aid);
-        $article = M('article')->where('aid='.$aid)->find();
-        $sort = M('asort')->field('name,id')->where("id='{$article['sid']}'")->find();
-        $this->assign('article',$article);
-        $this->assign('sort',$sort);
-        $this -> display();
-    }
-
-    //列表
-    public function articlelist($sid='',$p=1){
-        $sid = intval($sid);
-        $p = intval($p)>=1?$p:1;
-        $sort = M('asort')->field('name,id')->where("id='$sid'")->find();
-        if(!$sort) {
-            $this -> error('参数错误！');
-        }
-        $sorts = M('asort')->field('id')->where("id='$sid' or pid='$sid'")->select();
-        $sids = array();
-        foreach($sorts as $k=>$v){
-            $sids[] = $v['id'];
-        }
-        $sids = implode(',',$sids);
-
-        $m = M('article');
-        $pagesize = 2;#每页数量
-        $offset = $pagesize*($p-1);//计算记录偏移量
-        $count = $m->where("sid in($sids)")->count();
-        $list  = $m->field('aid,title,description,thumbnail,t')->where("sid in($sids)")->order("aid desc")->limit($offset.','.$pagesize)->select();
-        //echo $m->getlastsql();
-        $params = array(
-            'total_rows'=>$count, #(必须)
-            'method'    =>'html', #(必须)
-            'parameter' =>"/list-{$sid}-?.html",  #(必须)
-            'now_page'  =>$p,  #(必须)
-            'list_rows' =>$pagesize, #(可选) 默认为15
-        );
-        $page = new Page($params);
-        $this->assign('list',$list);
-        $this->assign('page',$page->show(1));
-        $this->assign('sort',$sort);
-        $this->assign('p',$p);
-        $this->assign('n',$count);
-
-        $this -> display();
-    }
-    */
-    //联系我们-添加留言
-    /**
-     * verify varchar notnull  非法验证
-     * name varchar notnull  姓名
-     * phone int notnull  联系电话
-     * email varchar notnull  邮箱
-     * content varchar notnull  内容
-     */
-    public function AddContact()
-    {
-        verifys($_POST['verify']);
-        $user['name'] = isset($_POST['name']) ? trim($_POST['name']) : '';//姓名
-        $user['phone'] = isset($_POST['phone']) ? trim($_POST['phone']) : '';//联系电话
-        $user['email'] = isset($_POST['email']) ? trim($_POST['email']) : '';//邮箱
-        $user['content'] = isset($_POST['content']) ? trim($_POST['content']) : '';//内容
-        $user['t'] = time();//添加时间
-
-        if ($user['name'] == '') {
-            returnApiError( '姓名不能为空！');
-        }
-        if ($user['phone'] == '') {
-            returnApiError( '联系电话不能为空！');
-        }
-        if ($user['email'] == '') {
-            returnApiError( '邮箱不能为空！');
-        }
-        if ($user['content'] == '') {
-            returnApiError( '内容不能为空！');
-        }
-
-        if (M('contact')->data($user)->add()) {
-            returnApiSuccess('1','添加联系成功');
-        }else{
-            returnApiError('无数据');
-        }
-
-    }
-
-//联系我们--获取联系方式
-    public function GetContact()
-    {
-        verifys($_POST['verify']);
-        $vars = M('setting')->where("k in ('wxname','wxmark','address','phone','email')")->select();
-        $data=array();
-        $flash=M("flash")->field('pic')->where('sid=12')->find();
-        $data['code']=$flash['pic'];
-        if(is_array($vars) && count($vars)>0) {
-            foreach($vars as $key=>$value){
-                if($value['k']=='wxname'){
-                    $data['wxname']=$value['v'];
-                }
-                if($value['k']=='wxmark'){
-                    $data['wxmark']=$value['v'];
-                }
-                if($value['k']=='address'){
-                    $data['address']=$value['v'];
-                }
-                if($value['k']=='phone'){
-                    $data['phone']=$value['v'];
-                }
-                if($value['k']=='email'){
-                    $data['email']=$value['v'];
-                }
-            }
-            returnApiSuccess('1', $data);
-        }else{
-            returnApiError('无数据');
-        }
-
-    }
-
-
-    /**
-     * 发展历程
-     * verify varchar notnull  非法验证
-     * p    int  post 页数
-     * size  int post 每页数量
-     */
-    public function GetCourse()
-    {
-        verifys($_POST['verify']);
-        $coures = M('article')->field("title,danwei")->where("sid=12")->limit(page($_POST['p'],$_POST['size']))->select();
-        $data=array();
-        if(is_array($coures) && count($coures)>0){
-            $data['coures']=$coures;
-            $data['count']=zongshu(12,$_POST['size']);
-            returnApiSuccess('1',$data);
-        }else{
-            returnApiError('无数据');
-        }
-    }
-
-    /**
-     * 公司简介
-     * verify varchar notnull  非法验证
-     */
-    public function GetKnow()
-    {
-        verifys($_POST['verify']);
-        $know=categorydye('name,content,tu',10);
-        if(is_array($know) && count($know)>0){
-            returnApiSuccess('1',$know);
-        }else{
-            returnApiError('无数据');
-        }
-    }
-
-
-    /**
-     * 合作品牌
-     * verify varchar notnull  非法验证
-     */
-    public function GetBrand()
-    {
-        verifys($_POST['verify']);
-        $coures = M('article')->field("aid,title,thumbnail")->where("sid=11")->limit(12)->select();
-        $data=array();
-        if(is_array($coures) && count($coures)>0){
-            $data['coures']=$coures;
-            $data['count']=zongshu(33,$_POST['size']);
-            returnApiSuccess('1',$data);
-        }else{
-            returnApiError('无数据');
-        }
-
-    }
-
-    /**
-     * 荣誉证书
-     * verify varchar notnull  非法验证
-     */
-    public function GetCertificate()
-    {
-        verifys($_POST['verify']);
-        $coures = M('article')->field("aid,title,thumbnail,content")->where("sid=13")->limit(page($_POST['p'],6))->select();
-        $data=array();
-        if(is_array($coures) && count($coures)>0){
-            $data['coures']=$coures;
-            $data['count']=zongshu(13,6);
-            returnApiSuccess('1',$data);
-        }else{
-            returnApiError('无数据');
-        }
-    }
-
-    /**
-     * 视频中心
-     * verify varchar notnull  非法验证
-     * p int 页数
-     * size int 每页数量
-     */
-    public function GetVideo()
-    {
-        verifys($_POST['verify']);
-        $coures = M('article')->field("aid,title,thumbnail,sp")->where("sid=37")->limit(page($_POST['p'],$_POST['size']))->select();
-        $data=array();
-        if(is_array($coures) && count($coures)>0){
-            $data['coures']=$coures;
-            $data['count']=zongshu(37,$_POST['size']);
-            returnApiSuccess('1',$data);
-        }else{
-            returnApiError('无数据');
-        }
-    }
-
-
-
-
-    /**
-     * 详情页面
-     * verify varchar notnull  非法验证
-     * aid int id
-     */
-    public function Particulars()
-    {
-        verifys($_POST['verify']);
-        $aid = isset($_POST['aid']) ? trim($_POST['aid']) : 0;
-        $article=M("article")->field('title,content,t')->where("aid=$aid")->find();
-
-        $gy=M("flash")->field('pic')->where("sid=9")->find();
-        $ge=M("flash")->field('pic')->where("sid=10")->find();
-
-        if(is_array($article) && count($article)>0){
-            $article['gy']=$gy['pic'];
-            $article['ge']=$ge['pic'];
-
-            $coures = M('article')->field("aid,title,thumbnail,sp")->where("sid=37")->limit(4)->order("t desc")->select();
-            $data=array();
-            if(is_array($coures) && count($coures)>0){
-                foreach($coures as $key=>$value){
-                    $data[]=$value;
-                }
-            }else{
-                $data[]='';
-            }
-            $article['sp']=$data;
-
-            $zj = M('article')->field("aid,title,thumbnail")->where("sid=20")->limit(4)->order("t desc")->select();
-            $hd=array();
-            if(is_array($zj) && count($zj)>0){
-                foreach($zj as $k=>$v){
-                    $hd[]=$v;
-                }
-            }else{
-                $hd[]='';
-            }
-            $article['hd']=$hd;
-
-            returnApiSuccess('1',$article);
-        }else{
-            returnApiError('无数据');
-        }
-    }
-
-
-
-    /**
-     * 招聘启事
-     * verify varchar notnull  非法验证
-     */
-    public function GetInvite()
-    {
-        verifys($_POST['verify']);
-        $coures = M('article')->field("aid,title,thumbnail,jiage,address,content,t")->where("sid=24")->select();
-        if(is_array($coures) && count($coures)>0){
-            returnApiSuccess('1',$coures);
-        }else{
-            returnApiError('无数据');
-        }
-    }
-
-    /**
-     * 弹窗
-     * verify varchar notnull  非法验证
-     * aid int id
-     */
-    public function FindPopup()
-    {
-        verifys($_POST['verify']);
-        $aid=$p = intval($_POST['aid']) > 0 ?$_POST['aid'] : 0;
-        $where['sid']=32;
-        $where['aid']=$aid;
-        $field='title,content';
-        $article=M("article")->field($field)->where($where)->find();
-        if(is_array($article) && count($article)>0){
-            returnApiSuccess('1',$article);
-        }else{
-            returnApiError('无数据');
-        }
-    }
-
-    /**
-     * 视频详情
-     * verify varchar notnull  非法验证
-     * aid int id
-     */
-    public function FindVideo()
-    {
-        verifys($_POST['verify']);
-        $aid=$p = intval($_POST['aid']) > 0 ?$_POST['aid'] : 0;
-        $where['sid']=37;
-        $where['aid']=$aid;
-        $field="aid,title,thumbnail,sp";
-        $article=M("article")->field($field)->where($where)->find();
-        if(is_array($article) && count($article)>0){
-            returnApiSuccess('1',$article);
-        }else{
-            returnApiError('无数据');
-        }
-    }
-
-    /**
-     * 活动公告
-     * verify varchar notnull  非法验证
-     * p int 页数
-     * size int 每页数量
-     */
-    public function Notice()
-    {
-        verifys($_POST['verify']);
-        $sid=intval($_POST['sid']) > 0 ?$_POST['sid'] : 0;
-        $where['sid']=$sid;
-        $field="aid,title,thumbnail,description,t";
-
-        $coures = M('article')->field($field)->where($where)->limit(page($_POST['p'],$_POST['size']))->select();
-        $arr=array();
-        $data=array();
-        if(is_array($coures) && count($coures)>0){
-            $data['coures']=$coures;
-            $data['count']=zongshu($sid,$_POST['size']);
-            $arr['notice']=$data;
-
-            $ersc = M('article')->field("aid,title,thumbnail")->where("sid=16")->limit(4)->order("t desc")->select();
-            if(is_array($ersc) && count($ersc)>0){
-                $arr['ersc']=$ersc;
-            }else{
-                $arr['ersc']='';
-            }
-            returnApiSuccess('1',$arr);
-        }else{
-            returnApiError('无数据');
-        }
-    }
 }
