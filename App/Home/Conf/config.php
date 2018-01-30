@@ -19,5 +19,8 @@ return array(//'配置项'=>'配置值'
 'org_name'=>'1134171215115606',
 'app_name'=>'appointment',
 
+//隐私保护通话
+    'accessKeyId'=>'LTAIRLaC2K6j0h5u',
+    'accessKeySecret'=>'iiIxUbzqsQUFuwqN1nLbsBFDsBoqdN',
 
 );

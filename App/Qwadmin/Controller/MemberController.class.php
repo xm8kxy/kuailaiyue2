@@ -15,7 +15,6 @@ class MemberController extends ComController
 {
     public function index()
     {
-        
         $p = isset($_GET['p']) ? intval($_GET['p']) : '1';
         $field = isset($_GET['field']) ? $_GET['field'] : '';
         $keyword = isset($_GET['keyword']) ? htmlentities($_GET['keyword']) : '';
@@ -77,6 +76,7 @@ class MemberController extends ComController
     {
 
         $uids = isset($_REQUEST['uids']) ? $_REQUEST['uids'] : false;
+
         //uid为1的禁止删除
         if ($uids == 1 or !$uids) {
             $this->error('参数错误！');

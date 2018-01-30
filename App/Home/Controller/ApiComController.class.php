@@ -1,14 +1,15 @@
 <?php
 namespace Home\Controller;
 use Think\Controller;
-require(C('Library')."/Firebase/JWT/JWT.php");
 use Firebase\JWT\JWT;
 class ApiComController extends Controller
 {
 
+    private $key;
     /**
      * 初始化的方法
      */
+
 
     /**
      * 检查每次app请求的数据是否合法
@@ -74,7 +75,8 @@ class ApiComController extends Controller
         if($str == ''){
             returnApiError( 'tokan必须！');
         }
-        $decoded = JWT::decode( $str, $key, array('HS256'));
+        $decoded = JWT::decode($str, $key, array('HS256'));
+
         if(!is_object($decoded)){
             returnApiError( 'tokan错误！');
         }else{
@@ -97,5 +99,10 @@ class ApiComController extends Controller
             }
             return $arr;
         }
+    }
+
+    public function yanjwt($token)
+    {   $key = C('key_xm');
+        return JWT::encode($token, $key);
     }
 }

@@ -19,6 +19,12 @@ class LoginController extends ComController
 
     public function login()
     {
+        /****************/
+//        $url = U('index/index');
+//        header("Location: $url");
+//        exit(0);
+
+        /****************/
         $verify = isset($_POST['verify']) ? trim($_POST['verify']) : '';
         if (!$this->check_verify($verify, 'login')) {
             $this->error('验证码错误！', U("login/index"));

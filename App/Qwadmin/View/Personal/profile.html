@@ -52,7 +52,13 @@
                             <div class="form-group">
                                 <label class="col-sm-1 control-label no-padding-right" for="form-field-4"> 缩略图 </label>
                                 <div class="col-sm-9">
-                                    <div class="col-xs-10 col-sm-5">{:UpImage("head",100,100,$member['head'])}</div>
+                                    <div class="col-xs-10 col-sm-5">
+                                        <if condition="$member['head']">
+                                            {:UpImage("Head",100,100,$member['head'])}
+                                            <else/>
+                                            {:UpImage("Head",100,100,"__PUBLIC__/qwadmin/img/sc.jpg")}
+                                        </if>
+                                    </div>
                                     <span class="help-inline col-xs-12 col-sm-7">
 												<span class="middle">仅支持jpg、gif、png、bmp、jpeg，且小于1MB。</span>
 											</span>

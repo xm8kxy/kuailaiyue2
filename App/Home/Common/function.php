@@ -104,20 +104,7 @@ function checkDataGet($data = null){
     exit;
 }
 
-/*
- * /验证消息来源
- * $verify    lxb
- * uid        用户id
- * */
-function verifys($verify='')
-{
-    $t = intval($_POST['t']) > 0 ?$_POST['t'] : '';//时间
-    $xycs= isset($_POST['verify']) ? trim($_POST['verify']) : '';//mb5(时间+校验参数)
-    if ($verify != '51cc') {
-        returnApiError('非法数据！');
-    }
 
-};
 
 /*通用查询
  *
@@ -190,9 +177,11 @@ function moneylog($content,$user_id,$type=0, $money,$user_balance,$zf_fs,$order_
 
 
 /**
- * 查询订单状态
- * $order_id
- * $user_id
+ * @name 查询订单状态
+ * @author 熊敏
+ * @param int $user_id 用户id
+ * @param int $order_id 订单id
+ * @return Integer array
  */
 function xm_order_start($order_id,$user_id){
     if(!isset($order_id)){ return  -2;}
@@ -210,8 +199,11 @@ function xm_order_start($order_id,$user_id){
 }
 
 /**
- *改变订单状态
- *
+ * @name 改变订单状态
+ * @author 熊敏
+ * @param int $user_id 用户id
+ * @param int $start 订单状态
+ * @return Integer
  */
 function xm_order_g_start($order_id,$start){
     if(!isset($order_id)){ return false;}
@@ -225,8 +217,11 @@ function xm_order_g_start($order_id,$start){
 }
 
 /**
- * @param 个人信息
- * @param bool $name
+ * @name 个人信息
+ * @author 熊敏
+ * @param int $user_id 用户id
+ * @param string $field 用来查询数据字段
+ * @return Integer
  */
 function  xm_user($user_id,$field='*'){
     if(!isset($user_id)){ return  -2;}
@@ -241,7 +236,8 @@ function  xm_user($user_id,$field='*'){
 
 /**
  * 查询个人可用金额如果是金卡返回金卡余额，如果不是返回普通余额
- *
+ * @param int $user_id 用户id
+ * @return Integer
  */
 function xm_is_jk_money($user_id){
     $field="is_jkuser,jk_balance,balance";
@@ -255,9 +251,11 @@ return $data['jk_balance'];
 
 }
 
-/**个人可用代金券
- *
- *
+/**
+ * 个人可用代金券
+ * @author 熊敏
+ * @param int $user_id 用户id
+ * @return array
  */
 function xm_ky_djj($user_id){
     if(!isset($user_id)){ return false;}
@@ -269,7 +267,6 @@ $data=M('XmCoupon')->where($where)->find();
     }else{
         return  false;
     }
-
 }
 
 /**
@@ -383,6 +380,14 @@ function xm_fl_name($fl_id){
     }
 }
 
+/**
+ * 获取13位时间戳
+ * @return int
+ */
+ function get13TimeStamp() {
+    list($t1, $t2) = explode(' ', microtime());
+    return $t2 . ceil($t1 * 1000);
+}
 /**
  * 获取头消息(系统好像有)
  * */
