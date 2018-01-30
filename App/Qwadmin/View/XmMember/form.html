@@ -1,0 +1,409 @@
+<include file="Public/head"/>
+<link href="__PUBLIC__/qwadmin/css/video-js.css" rel="stylesheet">
+<body class="no-skin">
+<include file="Public/header"/>
+<div class="main-container" id="main-container">
+    <script type="text/javascript">
+        try {
+            ace.settings.check('main-container', 'fixed')
+        } catch (e) {
+        }
+    </script>
+
+    <include file="Public/sidebar"/>
+    <div class="main-content">
+        <div class="main-content-inner">
+            <!-- #section:basics/content.breadcrumbs -->
+            <include file="Public/breadcrumbs"/>
+
+            <!-- /section:basics/content.breadcrumbs -->
+            <div class="page-content">
+                <include file="Public/set"/>
+
+                <!-- /section:settings.box -->
+                <div class="row">
+                    <div class="col-xs-12">
+                        <!-- PAGE CONTENT BEGINS -->
+                        <form class="form-horizontal" action="{:U('update')}" method="post">
+                            <div class="form-group">
+                                <label class="col-sm-1 control-label no-padding-right" for="form-field-1"> 昵称 </label>
+                                <div class="col-sm-9">
+                                    <input type="text"
+                                    <if condition="$member['id'] eq 1">readonly
+                                        <else/>
+                                        name="o_username"
+                                    </if>
+                                    class="rcol-xs-10 col-sm-5" value="{$member.o_username}">
+                                    <input type="hidden" name="id" value="{$member['id']}">
+                                    <span class="help-inline col-xs-12 col-sm-7">
+											<if condition="$member['id'] eq 1"><span class="middle">无法修改</span></if>
+											</span>
+                                </div>
+                            </div>
+
+                            <div class="space-4"></div>
+
+                            <div class="form-group">
+                                <label class="col-sm-1 control-label no-padding-right" for="form-field-6"> 电话号码 </label>
+                                <div class="col-sm-9">
+                                    <input type="text" name="moblie" id="moblie" placeholder="手机号码"
+                                           class="col-xs-10 col-sm-5" value="{$member['moblie']}">
+                                    <span class="help-inline col-xs-12 col-sm-7">
+												<span class="middle"></span>
+											</span>
+                                </div>
+                            </div>
+
+                            <div class="space-4"></div>
+
+
+                            <div class="form-group">
+                                <label class="col-sm-1 control-label no-padding-right" for="form-field-2"> 用户密码 </label>
+                                <div class="col-sm-9">
+                                    <input type="password" name="password" id="password" placeholder="用户密码"
+                                           class="col-xs-10 col-sm-5" value="">
+                                    <span class="help-inline col-xs-12 col-sm-7">
+												<span class="middle">留空不修改</span>
+											</span>
+                                </div>
+                            </div>
+
+                            <div class="space-4"></div>
+
+                            <div class="form-group">
+                                <label class="col-sm-1 control-label no-padding-right" for="form-field-4"> 头像 </label>
+                                <div class="col-sm-9">
+                                    <div class="col-xs-10 col-sm-5">
+                                        <if condition="$member['head']">
+                                            {:UpImage("Head",100,100,$member['head'])}
+                                            <else/>
+                                            {:UpImage("Head",100,100,"__PUBLIC__/qwadmin/img/sc.jpg")}
+                                        </if>
+                                    </div>
+                                    <span class="help-inline col-xs-12 col-sm-7">
+												<span class="middle">仅支持jpg、gif、png、bmp、jpeg，且小于1MB。</span>
+											</span>
+                                </div>
+
+                            </div>
+                            <div class="space-4"></div>
+
+                            <div class="form-group">
+                                <label class="col-sm-1 control-label no-padding-right" for="form-field-4">
+                                    视频 </label>
+                                <div class="col-sm-9">
+                                    <div class="col-xs-10 col-sm-5">
+                                        {:Upsp("sp",300,200,$member['video'])}
+                                    </div>
+                                    <span class="help-inline col-xs-12 col-sm-8">
+												<span class="middle">仅支持mp4，且小于100MB（请使用IE8以上浏览器）。</span>
+											</span>
+                                </div>
+
+                            </div>
+
+                            <div class="space-4"></div>
+
+                            <div class="form-group">
+                                <label class="col-sm-1 control-label no-padding-right" for="form-field-4"> 地址 </label>
+                                <div class="col-sm-9">
+                                    <select id="pro" name="pro" class="multiselect">
+                                        <option value="0">请选择</option>
+                                        <if condition="$member['province'] gt 0">
+                                            <option value="{$member['province']}" selected="selected">{$member['province_name']}</option>
+                                        </if>
+                                        <foreach name="region" item="v">
+                                            <option value="{$v.region_id}">{$v.region_name}</option>
+                                        </foreach>
+                                    </select>
+                                    <select name="city" id="city" <if condition="$member['city'] eq 0">style="display:none;"</if> class="multiselect">
+                                    <if condition="$member['city'] gt 0">
+                                        <option value="{$member['city']}" selected="selected">{$member['city_name']}</option>
+                                    </if>
+                                    <foreach name="city" item="c">
+                                        <option value="{$c.region_id}">{$c.region_name}</option>
+                                    </foreach>
+                                    </select>
+                                    <select name="area" id="area" <if condition="$member['area'] eq 0">style="display:none;"</if> class="multiselect">
+                                    <if condition="$member['district'] gt 0">
+                                        <option value="{$member['area']}" selected="selected">{$member['district_name']}</option>
+                                    </if>
+                                    <foreach name="district" item="d">
+                                        <option value="{$d.region_id}">{$d.region_name}</option>
+                                    </foreach>
+                                    </select>
+                                </div>
+                            </div>
+
+                            <div class="space-4"></div>
+
+                            <div class="form-group">
+                                <label class="col-sm-1 control-label no-padding-right" for="form-field-4"> 性别 </label>
+                                <div class="col-sm-9">
+                                    <select id="sex" name="sex" class="multiselect">
+                                        <option value="0"
+                                        <if condition="$member['sex'] eq 0">selected="selected"</if>
+                                        >男</option>
+                                        <option value="1"
+                                        <if condition="$member['sex'] eq 1">selected="selected"</if>
+                                        >女</option>
+                                    </select>
+                                </div>
+                            </div>
+
+                            <div class="space-4"></div>
+
+                            <div class="form-group">
+                                <label class="col-sm-1 control-label no-padding-right" for="form-field-4"> 提成等级 </label>
+                                <div class="col-sm-9">
+                                    <select id="women_grade" name="women_grade" class="multiselect">
+                                        <option value="0" <if condition="$member['women_grade'] eq 0">selected="selected"</if> >0级</option>
+                                        <option value="1" <if condition="$member['women_grade'] eq 1">selected="selected"</if> >1级</option>
+                                        <option value="2" <if condition="$member['women_grade'] eq 2">selected="selected"</if> >2级</option>
+                                        <option value="3" <if condition="$member['women_grade'] eq 3">selected="selected"</if> >3级</option>
+                                        <option value="4" <if condition="$member['women_grade'] eq 4">selected="selected"</if> >4级</option>
+                                        <option value="5" <if condition="$member['women_grade'] eq 5">selected="selected"</if> >5级</option>
+                                        <option value="6" <if condition="$member['women_grade'] eq 6">selected="selected"</if> >6级</option>
+                                        <option value="7" <if condition="$member['women_grade'] eq 7">selected="selected"</if> >7级</option>
+                                        <option value="8" <if condition="$member['women_grade'] eq 8">selected="selected"</if> >8级</option>
+                                        <option value="9" <if condition="$member['women_grade'] eq 9">selected="selected"</if> >9级</option>
+                                        <option value="10" <if condition="$member['women_grade'] eq 10">selected="selected"</if> >10级</option>
+                                    </select>
+                                </div>
+                            </div>
+
+                            <div class="space-4"></div>
+
+                            <div class="form-group">
+                                <label class="col-sm-1 control-label no-padding-right" for="form-field-4"> 积分等级 </label>
+                                <div class="col-sm-9">
+                                    <select id="integral" name="integral" class="multiselect">
+                                        <option value="10" <if condition="($member['integral'] gt 1) AND ($member['integral'] lt 200)">selected="selected"</if> >0级</option>
+                                        <option value="201" <if condition="($member['integral'] gt 200) AND ($member['integral'] lt 400)">selected="selected"</if> >1级</option>
+                                        <option value="401" <if condition="($member['integral'] gt 400) AND ($member['integral'] lt 800)">selected="selected"</if> >2级</option>
+                                        <option value="801" <if condition="($member['integral'] gt 800) AND ($member['integral'] lt 1600)">selected="selected"</if> >3级</option>
+                                        <option value="1601" <if condition="($member['integral'] gt 1600) AND ($member['integral'] lt 3200)">selected="selected"</if> >4级</option>
+                                        <option value="3201" <if condition="($member['integral'] gt 3200) AND ($member['integral'] lt 6400)">selected="selected"</if> >5级</option>
+                                        <option value="6401" <if condition="($member['integral'] gt 6400) AND ($member['integral'] lt 12800)">selected="selected"</if> >6级</option>
+                                        <option value="12801" <if condition="($member['integral'] gt 12800) AND ($member['integral'] lt 25600)">selected="selected"</if> >7级</option>
+                                        <option value="25601" <if condition="($member['integral'] gt 25600) AND ($member['integral'] lt 51200)">selected="selected"</if> >8级</option>
+                                        <option value="51201" <if condition="($member['integral'] gt 51200) AND ($member['integral'] lt 102400)">selected="selected"</if> >9级</option>
+                                        <option value="102401" <if condition="($member['integral'] gt 102400) AND ($member['integral'] lt 204800)">selected="selected"</if> >10级</option>
+                                    </select>
+                                </div>
+                            </div>
+
+                            <div class="space-4"></div>
+
+                            <div class="form-group">
+                                <label class="col-sm-1 control-label no-padding-right" for="id-date-picker-1">生日</label>
+                                <div class="col-xs-9 col-sm-9">
+                                    <div class="input-group col-xs-5">
+
+                                        <input class="form-control" id="birthday" name="birth" value="<if condition="
+                                               $member['birth'] neq '' ">{$member['birth']|date="Y-m-d H:i",###}</if>"
+                                        type="text" data-date-format="dd-mm-yyyy" />
+                                        <span class="input-group-addon">
+                                            <i class="ace-icon fa fa-calendar bigger-110"></i>
+                                        </span>
+
+                                    </div>
+                                </div>
+                            </div>
+
+
+                            <div class="space-4"></div>
+
+
+
+                            <div class="form-group">
+                                <label class="col-sm-1 control-label no-padding-right" for="form-field-7"> 个性签名 </label>
+                                <div class="col-sm-9">
+                                    <input type="text" name="gxqm" id="gxqm" placeholder="个性签名" class="col-xs-10 col-sm-5"
+                                           value="{$member['gxqm']}">
+                                    <span class="help-inline col-xs-12 col-sm-7">
+												<span class="middle"></span>
+											</span>
+                                </div>
+                            </div>
+
+                            <div class="space-4"></div>
+
+                            <div class="form-group">
+                                <label class="col-sm-1 control-label no-padding-right" for="form-field-8">
+                                    身高 </label>
+                                <div class="col-sm-9">
+                                    <input type="text" name="height" id="height" placeholder="身高"
+                                           class="col-xs-10 col-sm-5" value="{$member['height']}">
+                                    <span class="help-inline col-xs-12 col-sm-7">
+												<span class="middle"></span>
+											</span>
+                                </div>
+                            </div>
+
+                            <div class="space-4"></div>
+
+                            <div class="form-group">
+                                <label class="col-sm-1 control-label no-padding-right" for="form-field-8">
+                                    体重 </label>
+                                <div class="col-sm-9">
+                                    <input type="text" name="weight" id="weight" placeholder="体重"
+                                           class="col-xs-10 col-sm-5" value="{$member['weight']}">
+                                    <span class="help-inline col-xs-12 col-sm-7">
+												<span class="middle"></span>
+											</span>
+                                </div>
+                            </div>
+
+                            <div class="space-4"></div>
+
+                            <div class="form-group">
+                                <label class="col-sm-1 control-label no-padding-right" for="form-field-8">
+                                    推荐码 </label>
+                                <div class="col-sm-9">
+                                    <input type="text" name="code" id="code" placeholder="推荐码"
+                                           class="col-xs-10 col-sm-5" value="{$member['code']}">
+                                    <span class="help-inline col-xs-12 col-sm-7">
+												<span class="middle"></span>
+											</span>
+                                </div>
+                            </div>
+
+                            <div class="space-4"></div>
+
+                            <div class="form-group">
+                                <label class="col-sm-1 control-label no-padding-right" for="form-field-8">
+                                    视频地址 </label>
+                                <div class="col-sm-9">
+                                    <input type="text" name="video" id="video" placeholder="视频地址"
+                                           class="col-xs-10 col-sm-5" value="{$member['video']}">
+                                    <span class="help-inline col-xs-12 col-sm-7">
+												<span class="middle"></span>
+											</span>
+                                </div>
+                            </div>
+
+                            <div class="space-4"></div>
+
+                            <div class="form-group">
+                                <label class="col-sm-1 control-label no-padding-right" for="form-field-4"> 是否禁用 </label>
+                                <div class="col-sm-9">
+                                    <select id="is_disable" name="is_disable" class="multiselect">
+                                        <option value="0"
+                                        <if condition="$member['is_disable'] eq 0">selected="selected"</if>
+                                        >未禁用</option>
+                                        <option value="1"
+                                        <if condition="$member['is_disable'] eq 1">selected="selected"</if>
+                                        >已禁用</option>
+                                    </select>
+                                </div>
+                            </div>
+
+                            <div class="space-4"></div>
+
+                            <div class="form-group">
+                                <label class="col-sm-1 control-label no-padding-right" for="form-field-4"> 是否审核认证 </label>
+                                <div class="col-sm-9">
+                                    <select id="is_audit" name="is_audit" class="multiselect">
+                                        <option value="0"
+                                        <if condition="$member['is_audit'] eq 0">selected="selected"</if>
+                                        >未认证</option>
+                                        <option value="1"
+                                        <if condition="$member['is_audit'] eq 1">selected="selected"</if>
+                                        >已认证</option>
+                                    </select>
+                                </div>
+                            </div>
+
+                            <div class="space-4"></div>
+
+                            <div class="col-md-offset-2 col-md-9">
+                                <button class="btn btn-info" type="submit">
+                                    <i class="icon-ok bigger-110"></i>
+                                    提交
+                                </button>
+
+                                &nbsp; &nbsp; &nbsp;
+                                <button class="btn" type="reset">
+                                    <i class="icon-undo bigger-110"></i>
+                                    重置
+                                </button>
+                            </div>
+                        </form>
+                        <!-- PAGE CONTENT ENDS -->
+                    </div><!-- /.col -->
+                </div><!-- /.row -->
+            </div><!-- /.page-content -->
+        </div>
+    </div><!-- /.main-content -->
+    <include file="Public/footer"/>
+
+</div><!-- /.main-container -->
+
+<include file="Public/footerjs"/>
+<!-- inline scripts related to this page -->
+<script src="__PUBLIC__/qwadmin/js/date-time/bootstrap-datepicker.js"></script>
+<script src="__PUBLIC__/qwadmin/js/function.js"></script>
+<script type="text/javascript">
+
+    $('#pro').change(function(){
+        if($('#pro').val()>0){
+            $.ajax({
+                type:"post",
+                url:"{:U('XmMember/edit')}",
+                data:'pro_id='+$('#pro').val(),
+                dataType:"json",
+                success:function(data){
+                    $('#city').show();
+                    $('#area').val('0');
+                    $('#area').hide();
+                    $('#city').html(data);
+                }
+            });
+        }else{
+            $('#city').val('0');
+            $('#area').val('0');
+            $('#city').hide();
+            $('#area').hide();
+        }
+    });
+
+    $('#city').change(function(){
+        if($('#city').val()>0) {
+            $.ajax({
+                type: "post",
+                url: "{:U('XmMember/edit')}",
+                data: 'pro_id=' + $('#city').val(),
+                dataType: "json",
+                success: function (data) {
+                    $('#area').show();
+                    $('#area').html(data);
+                }
+            });
+        }else{
+            $('#area').val('0');
+            $('#area').hide();
+        }
+    });
+</script>
+<script type="text/javascript">
+    jQuery(function ($) {
+        $('#birthday').datepicker({
+            format: 'yyyy-mm-dd',
+            weekStart: 1,
+            autoclose: true,
+            todayBtn: 'linked',
+            language: 'cn'
+        });
+    });
+</script>
+<script src="__PUBLIC__/qwadmin/js/video.min.js"></script>
+<script type="text/javascript">
+    var myPlayer = videojs('my-video');
+    videojs("my-video").ready(function(){
+        var myPlayer = this;
+        myPlayer.play();
+    });
+</script>
+</body>
+</html>

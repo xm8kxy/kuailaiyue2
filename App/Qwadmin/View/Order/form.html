@@ -1,0 +1,163 @@
+<include file="Public/head"/>
+<body class="no-skin">
+<include file="Public/header"/>
+<div class="main-container" id="main-container">
+
+
+    <include file="Public/sidebar"/>
+    <div class="main-content">
+        <div class="main-content-inner">
+            <!-- #section:basics/content.breadcrumbs -->
+            <include file="Public/breadcrumbs"/>
+
+            <!-- /section:basics/content.breadcrumbs -->
+            <div class="page-content">
+                <include file="Public/set"/>
+
+                <!-- /section:settings.box -->
+                <div class="row">
+                    <div class="col-xs-12">
+                        <!-- PAGE CONTENT BEGINS -->
+                        <div class="space-4"></div>
+                        <div class="row">
+                            <table class="table table-striped table-bordered table-hover">
+                                <tbody>
+                                    <tr>
+                                        <td class="center" style="width: 30%;">订单号码：</td>
+                                        <td>{$member['order_number']}</td>
+                                    </tr>
+                                    <tr>
+                                        <td class="center">订单名称：</td>
+                                        <td>{$member['order_name']}</td>
+                                    </tr>
+                                    <tr>
+                                        <td class="center">发起者用户登录名：</td>
+                                        <td>{$member['moblie']}</td>
+                                    </tr>
+                                    <tr>
+                                        <td class="center">分类名称：</td>
+                                        <td>{$member['classify']}</td>
+                                    </tr>
+                                    <tr>
+                                        <td class="center">约会时间：</td>
+                                        <td>{$member['appointment_time']|date="Y-m-d H:i",###}</td>
+                                    </tr>
+                                    <tr>
+                                        <td class="center">修改约会时间：</td>
+                                        <td>{$member['modify_appointment_time']|date="Y-m-d H:i",###}</td>
+                                    </tr>
+                                    <tr>
+                                        <td class="center">约会时限：</td>
+                                        <td>{$member['time_limit']}</td>
+                                    </tr>
+                                    <tr>
+                                        <td class="center">约会地址：</td>
+                                        <td>{$member['appointment_dd']}</td>
+                                    </tr>
+                                    <tr>
+                                        <td class="center">要求备注：</td>
+                                        <td>{$member['remarks']}</td>
+                                    </tr>
+                                    <tr>
+                                        <td class="center">要求性别：</td>
+                                        <td>
+                                            <if condition="$member['is_sex'] eq 0">男</if>
+                                            <if condition="$member['is_sex'] eq 1">女</if>
+                                        </td>
+                                    </tr>
+                                    <tr>
+                                        <td class="center">要求人数：</td>
+                                        <td>{$member['people_num']}</td>
+                                    </tr>
+                                    <tr>
+                                        <td class="center">是否喝酒：</td>
+                                        <td>
+                                            <if condition="$member['is_drink'] eq 0">不喝酒</if>
+                                            <if condition="$member['is_drink'] eq 1">喝酒</if>
+                                        </td>
+                                    </tr>
+                                    <tr>
+                                        <td class="center">是否匿名：</td>
+                                        <td>{$member['is_anonymous']}</td>
+                                    </tr>
+                                    <tr>
+                                        <td class="center">金额：</td>
+                                        <td>{$member['money']}</td>
+                                    </tr>
+                                    <tr>
+                                        <td class="center">选择人数：</td>
+                                        <td>{$member['xz_pe_num']}</td>
+                                    </tr>
+                                    <tr>
+                                        <td class="center">选择人用户名：</td>
+                                        <td>{$member['xz_user_id']}</td>
+                                    </tr>
+                                    <tr>
+                                        <td class="center">续约时间：</td>
+                                        <td>{$member['modify_time_limit']|date="Y-m-d H:i",###}</td>
+                                    </tr>
+                                    <tr>
+                                        <td class="center">续约费用：</td>
+                                        <td>{$member['modify_money']}</td>
+                                    </tr>
+                                    <tr>
+                                        <td class="center">订单状态：</td>
+                                        <td>{$member['status']}</td>
+                                    </tr>
+                                    <tr>
+                                        <td class="center">是否评价：</td>
+                                        <td>{$member['is_evaluate']}</td>
+                                    </tr>
+                                    <tr>
+                                        <td class="center">礼品费用：</td>
+                                        <td>{$member['gift_cost']}</td>
+                                    </tr>
+                                    <tr>
+                                        <td class="center">是否续约：</td>
+                                        <td>{$member['is_renew']}</td>
+                                    </tr>
+                                    <tr>
+                                        <td class="center">是否提前或推迟：</td>
+                                        <td>{$member['is_advance_notice']}</td>
+                                    </tr>
+                                    <tr>
+                                        <td class="center">发起时间：</td>
+                                        <td>{$member['time_add']|date="Y-m-d H:i",###}</td>
+                                    </tr>
+                                    <tr>
+                                        <td class="center">修改时间：</td>
+                                        <td>{$member['time_modify']|date="Y-m-d H:i",###}</td>
+                                    </tr>
+                                    <tr>
+                                        <td class="center">完成时间：</td>
+                                        <td>{$member['time_completion']|date="Y-m-d H:i",###}</td>
+                                    </tr>
+                                    <tr>
+                                        <td class="center">用户支付金额：</td>
+                                        <td>{$member['user_payment']}</td>
+                                    </tr>
+                                    <tr>
+                                        <td class="center">支付方式：</td>
+                                        <td>{$member['payment_method']}</td>
+                                    </tr>
+                                    <tr>
+                                        <td class="center">是否使用代金券：</td>
+                                        <td>{$member['is_user_coupon']}</td>
+                                    </tr>
+                                </tbody>
+                            </table>
+                        </div>
+                        <!-- PAGE CONTENT ENDS -->
+                    </div><!-- /.col -->
+                </div><!-- /.row -->
+            </div><!-- /.page-content -->
+        </div>
+    </div><!-- /.main-content -->
+    <include file="Public/footer"/>
+
+</div><!-- /.main-container -->
+
+<include file="Public/footerjs"/>
+<!-- inline scripts related to this page -->
+</body>
+</html>

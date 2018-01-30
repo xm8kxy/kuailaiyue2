@@ -1,0 +1,151 @@
+<include file="Public/head"/>
+<body class="no-skin">
+<include file="Public/header"/>
+<div class="main-container" id="main-container">
+    <script type="text/javascript">
+        try {
+            ace.settings.check('main-container', 'fixed')
+        } catch (e) {
+        }
+    </script>
+
+    <include file="Public/sidebar"/>
+    <div class="main-content">
+        <div class="main-content-inner">
+            <!-- #section:basics/content.breadcrumbs -->
+            <include file="Public/breadcrumbs"/>
+
+            <!-- /section:basics/content.breadcrumbs -->
+            <div class="page-content">
+                <include file="Public/set"/>
+
+                <!-- /section:settings.box -->
+                <div class="row">
+                    <div class="col-xs-12">
+                        <!-- PAGE CONTENT BEGINS -->
+                        <div class="row">
+                            <form class="form-inline" action="index" method="get">
+                                <label class="inline">用户搜索</label>
+                                <select name="field" class="form-control">
+                                    <option <if condition="I('field') eq moblie">selected</if> value="moblie">手机号码</option>
+                                </select>
+                                <input type="text" name="keyword" value="{:I(keyword)}" class="form-control">
+                                <label class="inline">&nbsp;&nbsp;排序：</label>
+                                <select name="order" class="form-control">
+                                    <option <if condition="I('order') eq asc">selected</if> value="asc">提交时间升</option>
+                                    <option <if condition="I('order') eq desc">selected</if> value="desc">提交时间降</option>
+                                </select>
+                                <button type="submit" class="btn btn-purple btn-sm">
+                                    <span class="ace-icon fa fa-search icon-on-right bigger-110"></span>
+                                    Search
+                                </button>
+                            </form>
+                        </div>
+                        <div class="space-4"></div>
+                        <div class="row">
+                            <table class="table table-striped table-bordered table-hover">
+                                <thead>
+                                <tr>
+                                    <th class="center">编号</th>
+                                    <th class="center">手机号码</th>
+                                    <th class="center">提交时间</th>
+                                    <th class="center">处理时间</th>
+                                    <th class="center">是否阅读</th>
+                                    <th class="center">反馈状态</th>
+                                    <th class="center">操作</th>
+                                </tr>
+                                </thead>
+                                <tbody>
+                                <volist name="list" id="val">
+                                    <tr>
+                                        <td class="center">{$val['aid']}</td>
+                                        <td class="center">{$val['moblie']}</td>
+                                        <td class="center">{$val['addtime']|date="Y-m-d H:i:s",###}</td>
+                                        <td class="center">
+                                            <if condition="$val['handl_time']">{$val['handl_time']|date="Y-m-d H:i:s",###}
+                                                <else/>
+                                                未处理
+                                            </if>
+                                        </td>
+                                        <td class="center"><?php if($val['is_yd']==0){echo '未阅读';}elseif($val['is_yd']==1){echo '已阅读';} ?></td>
+                                        <td class="center"><?php if($val['start']==0){echo '未处理';}elseif($val['start']==1){echo '已处理';}else{echo '驳回';} ?></td>
+                                        <td class="center"><a href="{:U('edit',array('aid'=>$val['aid']))}">详情</a>&nbsp;
+                                        </td>
+                                    </tr>
+                                </volist>
+                                </tbody>
+                            </table>
+                            {$page}
+                        </div>
+                        <!-- PAGE CONTENT ENDS -->
+                    </div><!-- /.col -->
+                </div><!-- /.row -->
+            </div><!-- /.page-content -->
+        </div>
+    </div><!-- /.main-content -->
+    <include file="Public/footer"/>
+
+</div><!-- /.main-container -->
+
+<include file="Public/footerjs"/>
+<!-- inline scripts related to this page -->
+<script type="text/javascript">
+    $(function () {
+
+
+        $(".check-all").click(function () {
+            $(".uids").prop("checked", this.checked);
+        });
+        $(".uids").click(function () {
+            var option = $(".ids");
+            option.each(function (i) {
+                if (!this.checked) {
+                    $(".check-all").prop("checked", false);
+                    return false;
+                } else {
+                    $(".check-all").prop("checked", true);
+                }
+            });
+        });
+        $("#submit").click(function () {
+            bootbox.confirm({
+                title: "系统提示",
+                message: "是否要删除所选用户？",
+                callback: function (result) {
+                    if (result) {
+                        $("#form").submit();
+                    }
+                },
+                buttons: {
+                    "cancel": {"label": "取消"},
+                    "confirm": {
+                        "label": "确定",
+                        "className": "btn-danger"
+                    }
+                }
+            });
+        });
+        $(".del").click(function () {
+            var url = $(this).attr('val');
+            alert(url);
+            bootbox.confirm({
+                title: "系统提示",
+                message: "是否要删除该用户?",
+                callback: function (result) {
+                    if (result) {
+                        window.location.href = url;
+                    }
+                },
+                buttons: {
+                    "cancel": {"label": "取消"},
+                    "confirm": {
+                        "label": "确定",
+                        "className": "btn-danger"
+                    }
+                }
+            });
+        });
+    })
+</script>
+</body>
+</html>
