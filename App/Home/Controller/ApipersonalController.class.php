@@ -779,7 +779,7 @@ class ApipersonalController extends ApiComController
         $h = new Easemob($this->options);
         $hx = $h->getToken();
         echo $hx;
-        echo 123456;
+        echo 123456999;
         exit;
     }
     /**----------------------------------------个人资料 结束 钱晓松----------------------------------------*/
