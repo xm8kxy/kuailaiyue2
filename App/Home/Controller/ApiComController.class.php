@@ -1,4 +1,9 @@
 <?php
+/**
+ * api公共方法，包含跨域，header验证，非法数据验证，验证jwt
+ * @author 熊敏
+ * @version 1.0
+ */
 namespace Home\Controller;
 use Think\Controller;
 use Firebase\JWT\JWT;
@@ -38,11 +43,15 @@ class ApiComController extends Controller
 
     //非法数据
     public function checkRequsetSign(){
-        $t = intval($_POST['t']) > 0 ?$_POST['t'] : '';//时间
+
+     //   echo json_encode($_POST);exit;
+      //  $t = intval($_POST['t']) > 0 ?$_POST['t'] : '';//时间
+        $t = isset($_POST['t']) ? trim($_POST['t']) : '';
         $xycs= isset($_POST['verify']) ? trim($_POST['verify']) : '';//mb5(时间+校验参数)
         $xycs_bd= C('token_xm');
         $verify=md5($t.$xycs_bd);
-        if ( $t == '') {returnApiError( '时间必须！');}
+
+        if ( $t == '') {returnApiError( '时间必须');}
         if ($xycs == '') {returnApiError( '校验码必须！');}
         //    if ($verify!=$xycs){returnApiError( '非法数据');}
     }
@@ -105,4 +114,23 @@ class ApiComController extends Controller
     {   $key = C('key_xm');
         return JWT::encode($token, $key);
     }
+
+    /**
+     * 通用化API接口数据输出(废弃)
+     * @param int $status 业务状态码
+     * @param string $message 信息提示
+     * @param [] $data  数据
+     * @param int $httpCode http状态码
+     * @return array
+     */
+    function show($status, $message, $data=[], $httpCode=200) {
+
+        $data = [
+            'status' => $status,
+            'message' => $message,
+            'data' => $data,
+        ];
+      return json($data, $httpCode);
+    }
+
 }

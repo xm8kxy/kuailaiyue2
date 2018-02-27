@@ -9,18 +9,18 @@
  * Function descript: 返回带参数，标志信息，提示信息的json 数组
  *
  */
-function returnApiSuccess($msg = null,$data = array()){
+function returnApiSuccess($msg = null,$data = array(),$httpCode=200){
     $result = array(
+        'code' => $httpCode,
         'flag' => 'Success',
         'msg' => $msg,
-
         'data' =>$data
     );
     $datas=json_encode($result);
     //替换标签
-    $datas= str_replace("&lt;","<",$datas);
-    $datas= str_replace("&gt;",">",$datas);
-    $datas= str_replace('\r\n',"",$datas);
+//    $datas= str_replace("&lt;","<",$datas);
+//    $datas= str_replace("&gt;",">",$datas);
+//    $datas= str_replace('\r\n',"",$datas);
 
     print $datas;
     exit;
@@ -31,8 +31,9 @@ function returnApiSuccess($msg = null,$data = array()){
  * @param flag success CURD 操作失败
  * Function descript:返回标志信息 ‘Error'，和提示信息的json 数组
  */
-function returnApiError($msg = null){
+function returnApiError($msg = null,$httpCode=500){
     $result = array(
+        'code' => $httpCode,
         'flag' => 'Error',
         'msg' => $msg,
     );
@@ -105,6 +106,24 @@ function checkDataGet($data = null){
 }
 
 
+///**
+// * 通用化API接口数据输出
+// * @param int $status 业务状态码
+// * @param string $message 信息提示
+// * @param [] $data  数据
+// * @param int $httpCode http状态码
+// * @return array
+// */
+//function show($status, $message, $data=[], $httpCode=200) {
+//
+//    $data = [
+//        'status' => $status,
+//        'message' => $message,
+//        'data' => $data,
+//    ];
+//
+//    return json($data, $httpCode);
+//}
 
 /*通用查询
  *
@@ -151,7 +170,7 @@ function generate_code($length = 6) {
  * $user_id
  * $order_id
  * $content  内容
- * $type 0是订单 1是礼品3充值4提现5退款6提成
+ * $type 0是订单 1是礼品3充值4提现5退款6提成7男取消订单补偿
  * $user_balance 变动余额
  * $zf_fs   支付方式
  * $money
@@ -174,6 +193,37 @@ function moneylog($content,$user_id,$type=0, $money,$user_balance,$zf_fs,$order_
     }
     $Model->data($data)->add();
 }
+
+/**
+ * 充值资金流水
+ * $user_id
+ * $order_id
+ * $content  内容
+ * $type 0是订单 1是礼品3充值4提现5退款6提成
+ * $user_balance 变动余额
+ * $zf_fs   支付方式1支付宝2微信
+ * $money
+ *
+ */
+function czmoneylog($user_id,$content,$money,$user_balance,$zf_fs=1,$order_id){
+      $data['user_id'] =$user_id;
+      $data['content'] =$content;
+      $data['money'] =$money;
+      $data['user_balance'] =$user_balance;
+    if($zf_fs==1){
+        $data['zf_type'] ='支付宝';
+    }elseif($zf_fs==2){
+        $data['zf_type'] ='微信';
+    }else{
+        $data['zf_type'] ='余额';
+    }
+      $data['type']=3;
+      $data['order_id'] =$order_id;
+      $data['time_add'] =get13TimeStamp();
+      $Model = M('XmMoneyFlow');
+      $Model->data($data)->add();
+}
+
 
 
 /**
@@ -233,6 +283,26 @@ function  xm_user($user_id,$field='*'){
         return  -1;
     }
 }
+/**
+ * @name 跟新个人信息
+ * @author 熊敏
+ * @param int $user_id 用户id
+ * @param array $data 更新的数组
+ * @return Integer
+ */
+function xm_put_user($user_id,$data){
+    $where['id']=$user_id;
+    $datas=M('XmMember')->where($where)->save($data);
+    if($datas){
+        return $datas;
+    }else{
+        return false;
+    }
+
+}
+
+
+
 
 /**
  * 查询个人可用金额如果是金卡返回金卡余额，如果不是返回普通余额
@@ -255,12 +325,16 @@ return $data['jk_balance'];
  * 个人可用代金券
  * @author 熊敏
  * @param int $user_id 用户id
+ * @param int $coupon_id 用户id
  * @return array
  */
-function xm_ky_djj($user_id){
+function xm_ky_djj($user_id,$coupon_id){
     if(!isset($user_id)){ return false;}
     $where['user_id']=$user_id;
     $where['state']=0;
+    if($coupon_id){
+        $where['id']=$coupon_id;
+    }
 $data=M('XmCoupon')->where($where)->find();
     if($data){
         return  $data;
@@ -401,11 +475,161 @@ function xm_fl_name($fl_id){
 //    }
 //    return $headers;
 //}
+/**
+ * 将字符串转换成数组
+ * @author 熊敏
+ * @param string $str 字符串
+ * @return array
+ */
+function xm_explod($str){
+   $array= explode(",",trim($str));
+    return $array;
+}
 
-//------------------------------------------
+/**
+ * 图片文件上传
+ * @author 熊敏
+ * @return array
+ */
+function imgup(){
+    $upload = new \Think\Upload();// 实例化上传类
+    $upload->maxSize   =     3145728 ;// 设置附件上传大小
+    $upload->exts      =     array('jpg', 'gif', 'png', 'jpeg');// 设置附件上传类型
+    $upload->rootPath  =      './file/'; // 设置附件上传根目录
+    $upload->savePath  =      'head'; // 设置附件上传（子）目录
+// 上传文件
+    $info   =   $upload->upload();
+    if(!$info) {// 上传错误提示错误信息
+        return false;
+     //   $this->error($upload->getError());
+    }else{// 上传成功 获取上传文件信息
+        return $info;
+
+    }
+}
+
+/**
+ * 视频文件上传
+ * @author 熊敏
+ * @return array
+ */
+function videoup(){
+    $upload = new \Think\Upload();// 实例化上传类
+    $upload->maxSize   =     3145728000 ;// 设置附件上传大小
+    $upload->exts      =     array('mp4');// 设置附件上传类型
+    $upload->rootPath  =      './file/'; // 设置附件上传根目录
+    $upload->savePath  =      'mp4'; // 设置附件上传（子）目录
+// 上传文件
+    $info   =   $upload->upload();
+    if(!$info) {// 上传错误提示错误信息
+        return false;
+        //   $this->error($upload->getError());
+    }else{// 上传成功 获取上传文件信息
+        return $info;
+
+    }
+}
 
 
+/**
+ * 分页
+ * @author 熊敏
+ * @param int $p_val 分页数
+ * @param int $size 每页数量
+ * @return array
+ */
+function page($p_val=1,$size=10){
+    $p = intval($p_val) > 0 ?$p_val : 1;
+    $pagesize = $size;#每页数量
+    $offset = $pagesize * ($p - 1);//计算记录偏移量
+    $data=$offset . ',' . $pagesize;
+    return $data;
+}
+//-----------------------------------------代金券部分
 
+/**
+ * 代金券
+ * @author 熊敏
+ * @param int $coupon_num 代金券编号
+ * @return array
+ */
+function get_djjs($coupon_num){
+    if(!isset($coupon_num)){ return false;}
+    $where['coupon_num']=$coupon_num;
+    $where['state']=0;
+    $data=M('XmCoupon')->where($where)->find();
+    if($data){
+        return  $data;
+    }else{
+        return  false;
+    }
+}
+
+
+/**
+ * 更新代金券状态
+ * @author 熊敏
+ * @param $coupon_id 代金券id
+ * @param int $staurt  代金券状态
+ * @return bool|false|int
+ */
+function xm_put_djj($coupon_id,$staurt=0){
+    if(!isset($coupon_id)){ return false;}
+    $where['id']=$coupon_id;
+    $data['state']=$staurt;
+    $datas=M('XmCoupon')->where($where)->save($data);
+    if($datas){
+        return $datas;
+    }else{
+        return false;
+    }
+}
+
+//------------------------------------------订单部分方法
+
+/**
+ * 添加异常订单
+ * @param int $zf_type 支付方式1支付宝2是微信
+ * @param $order_mun  订单编号
+ * @param $money      支付金额
+ * @param $add_time  添加时间 这里不是时间搓
+ * @param $remarks 备注
+ * @param $coupon_mun  代金券编号
+ */
+function add_yc_order($zf_type=1,$order_mun,$money,$add_time,$remarks,$coupon_mun=''){
+    //异常订单
+    $dataao['zf_type']=$zf_type;
+    $dataao['order_mun']=$order_mun;
+    $dataao['money']=$money;
+    $dataao['stuart']=1;
+    $dataao['add_time']=$add_time;
+    $dataao['remarks']=$remarks;
+    $dataao['coupon_mun']= $coupon_mun;
+    $adddata= M("XmAbnormalOrder")->add($dataao);
+    if($adddata){
+        return  $adddata;
+    }else{
+        return  false;
+    }
+}
+///**
+// * 生成充值订单
+// * @author 熊敏
+// * @param int $user_id 用户id
+// * @param array $data 更新的数组
+// * @return Integer
+// */
+//function xm_put_users($user_id,$data){
+//    $datas=M('XmCzOrder')->add($data);
+//    if($datas){
+//        return $datas;
+//    }else{
+//        return false;
+//    }
+//}
+
+
+//-----------------------------------------
 
 function addlog($log, $name = false)
 {
@@ -427,143 +651,156 @@ function addlog($log, $name = false)
     $data['log'] = $log;
     $Model->data($data)->add();
 }
-/*
- * 广告
- * $region_id  城市id
- * $field      字段
- * $is_del     是否显示
- * $limit     限制
- * */
-function  addata($region_id='180',$field='*',$is_del='0',$limit=null){
-    $where['city']=$region_id;
-    $where['is_del']=$is_del;
-    $field=$field;
-    $data= M('flash')->field($field)->where($where)->limit($limit)->select();
-    return  $data;
-    exit;
-}
 
-/*
- * 文章
 
- * $field      字段
- * $sid        分类 0表示不区分分类
- * $is_del     是否显示
- * $limit     限制
- * $id       查单个消息
-* */
-function  articledata($field='*',$sid='0',$limit=null,$id=null){
+/**
+ * 查询个人职业和爱好
+ * @author 钱晓松
+ * @param int $user_id 用户id
+ * @return String 职业爱好
+ */
+function get_hobby($tc_id,$sex){
+    if(!isset($sex)){ return  -12;}
 
-    if($sid){
-        $where['sid']=$sid;
+    $where['sex']=$sex;
+    if($tc_id){
+        $where['id']=array('in',$tc_id);
     }
-
-    $order="t desc";
-    $field=$field;
-    if($id){
-        $where['aid']=$id;
-        $data= M('article')->field($field)->where($where)->find();
+    if($sex){
+        $where['type']=1;//女
     }else{
-        $data= M('article')->field($field)->where($where)->limit($limit)->order($order)->select();
+        $where['type']=0;//男
     }
-  //  echo M("article")->getLastSql();
-    return  $data;
-    exit;
-}
-
-/*
- * 有条件的文章
- * $field      字段
- * $sid        分类 0表示不区分分类
- * $is_del     是否显示
- * $limit     限制
- * $wher       查单条件
-* */
-function  articlewhere($field='*',$sid='0',$limit=null,$where=null){
-    if($sid){
-        $where['sid']=$sid;
-    }
-    $order="t desc";
-    $field=$field;
-        $data= M('article')->field($field)->where($where)->limit($limit)->order($order)->select();
-
-    return  $data;
-    exit;
-}
-
-
-/*单页
- *$field   字段
- *$sid    类别
- *$where
- * **/
-function  categorydye($field='*',$sid='0',$where=null){
-
-    $where['id']=$sid;
-    $where['type']=1;
-    $order="o desc";
-    $field=$field;
-    $data= M('category')->field($field)->where($where)->order($order)->find();
-  //  echo M("category")->getLastSql();exit;
-    return  $data;
-    exit;
-}
-
-
-
-
-/*
- * 视频
-* $field     字段
- * $statue   状态
-* $limit     限制
- * $id       查单个消息
- * */
-function  spdata($field='*',$statue='1',$limit=null,$id=null){
-    $where['statue']=$statue;
-    $field=$field;
-    if($id){
-        $where['aid']=$id;
-        $data= M('video')->field($field)->where($where)->find();
+    $xm_tab=M('xm_tab')->field('id,o_username')->where($where)->select();
+    if($xm_tab){
+        $x=0;
+        $data='';
+        //多个爱好或职业用逗号隔开
+        foreach($xm_tab as $value){
+            $x?$str=',':$str='';
+            $data.=$str.$value['o_username'];
+            $x++;
+        }
+        return $data;
     }else{
-        $data= M('video')->field($field)->where($where)->limit($limit)->select();
+        return -1;
     }
+}
 
-    return  $data;
+
+
+/**
+ * 通过区域id汉化区域
+ * @author 钱晓松
+ * @param int $province 省id
+ * @param int $city 市id
+ * @param int $area 区id
+ * @return String 中文省市区
+ */
+function get_region($province,$city,$area)
+{
+    if ($province) {
+        $province_name = M('qxs_region')->where("region_id=$province")->find();
+        $city_name = $city ? M('qxs_region')->where("region_id=$city")->find() : 0;
+        $area_name = $area ? M('qxs_region')->where("region_id=$area")->find() : 0;
+        $data['province_name'] = $province_name['region_name'];
+        $data['city_name'] = $city_name['region_name'];
+        $data['area_name'] = $area_name['region_name'];
+        return $data;
+    }else{
+        return false;
+    }
+}
+
+
+
+/**
+ * @name 通用---获取数据总条数
+ * @author 钱晓松
+ * @param int $table 查询表格名称
+ * @param int $where 查询条件
+ * @return int 总条数
+ */
+function get_count($table='',$where=null)
+{
+    if($table&&$where){
+        $data=M($table);
+        $datas=$data->where($where)->count();
+        return  $datas;
+    }else{
+        return -1;
+    }
     exit;
 }
 
-
-
-
-//分页
-
-function page($p_val=1,$size=10){
-    $p = intval($p_val) > 0 ?$p_val : 1;
-    $pagesize = $size;#每页数量
-    $offset = $pagesize * ($p - 1);//计算记录偏移量
-    $cc=$offset . ',' . $pagesize;
-    return $cc;
+/**
+ * 通过订单状态获取汉化状态名称
+ *
+ * @author 钱晓松
+ * @version 1.0
+ * @param string $status 订单状态
+ * @return string 订单名称
+ **/
+function GetStatusName($status)
+{
+    if(is_null($status)){return false;}
+    if($status == 0){
+        $status_name='待生成';
+    }elseif($status==1){
+        $status_name='已生成待处理';
+    }elseif($status==2){
+        $status_name='已处理待进行';
+    }elseif($status==3){
+        $status_name='已进行待修改';
+    }elseif($status==4){
+        $status_name='已修改待支付';
+    }elseif($status==5){
+        $status_name='已支付';
+    }elseif($status==6){
+        $status_name='已完成';
+    }elseif($status==7){
+        $status_name='已评价';
+    }elseif($status==8){
+        $status_name='已取消';
+    }else{
+        $status_name=-1;
+    }
+    return $status_name;
 }
 
 
-//文章类别总页数
-/*
- * $lebie 类别
- * */
-function zongshu($lebie,$size=10){
-    $where['sid']=$lebie;
-    $pagesize = $size;#每页数量
-$data=M('article')->where($where)->count();
-$data=ceil($data/$pagesize);
-    return $data;
+/** 未使用~~~
+ * @name 根据用户id获取评论列表
+ * @author 钱晓松
+ * @param int $user_id 用户id
+ * @return array
+ */
+function get_comment($user_id,$field='*'){
+    if(!isset($user_id)){ return  -2;}
+    $where['user_id']=$user_id;
+    $data=M('XmComment')->field($field)->where($where)->select();
+    if($data){
+        return  $data;
+    }else{
+        return  -1;
+    }
 }
 
-//自定义变量
-function zdybl($lebie){
-    $where['k']=$lebie;
-    $pagesize = 10;#每页数量
-    $data=M('setting')->where($where)->find();
-    $datas= $data['v'];
-    return  $datas;
+
+/**
+ * @name 获取个人信息
+ * @author 钱晓松
+ * @param int $mobile 用户id
+ * @param string $field 用来查询数据字段
+ * @return Integer
+ */
+function  get_user($mobile,$field='*'){
+    if(!isset($mobile)){ return  -2;}
+    $where['mobile']=$mobile;
+    $data=M('XmMember')->field($field)->where($where)->find();
+    if($data){
+        return  $data;
+    }else{
+        return  -1;
+    }
 }

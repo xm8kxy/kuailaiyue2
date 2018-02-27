@@ -1548,3 +1548,18 @@ function think_filter(&$value){
 function in_array_case($value,$array){
     return in_array(strtolower($value),array_map('strtolower',$array));
 }
+
+
+/**
+ * 获取\think\response\Json对象实例
+ * @param mixed   $data 返回的数据
+ * @param integer $code 状态码
+ * @param array   $header 头部
+ * @param array   $options 参数
+ * @return \think\response\Json
+ */
+function json($data = [], $code = 200, $header = [], $options = [])
+{
+
+    return Think\Response::create($data, 'json', $code, $header, $options);
+}

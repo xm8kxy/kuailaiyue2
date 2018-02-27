@@ -10,7 +10,7 @@ function valid_email($str)
 }
 
 //检测PHP设置参数
-function show($varName)
+function  show($varName)
 {
 	switch($result = get_cfg_var($varName))
 	{

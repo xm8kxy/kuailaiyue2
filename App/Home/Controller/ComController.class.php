@@ -17,4 +17,5 @@ class ComController extends Controller
         $this->assign('links',$links);
         */
     }
+
 }

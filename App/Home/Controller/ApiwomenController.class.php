@@ -1,9 +1,14 @@
 <?php
+/**
+ * 女性api
+ * @author 熊敏
+ * @version 1.0
+ */
 namespace Home\Controller;
 use Think\Upload;
 use Vendor\Page;
 use XmClass\Ucpassxm;
-
+//require_once "./comm_function.php";
 class ApiwomenController extends ApiComController
 {
 
@@ -37,7 +42,7 @@ class ApiwomenController extends ApiComController
        //不用验证是方法
         $no_dr=array();
        // $no_dr[]='getSMSCode'; //发送短信
-        parent::checkRequsetdr($no_dr);
+     parent::checkRequsetdr($no_dr);
     }
 
     //短信发送
@@ -119,7 +124,7 @@ if($data_o['code']=='0'){
     public function WomenGrabOrder()
     {
         //查询订单是否过期改订单状态
-        $sj=time();
+        $sj=get13TimeStamp();
         $data_sj['status']=0;
         $where_sj['end_time']  = array('lt', $sj);
         $Xro=M('XmRobOrde');
@@ -143,8 +148,9 @@ if($data_o['code']=='0'){
         //查询用订单
         $where_o['status']=1;
         $where_o['area']=$area;
-        $field_o='id,user_id';
-        $data_o=$Xro->field($field_o)->where($where_o)->limit(20)->select();
+        $field_o='id,user_id,order_id';
+        $data_o=$Xro->field($field_o)->where($where_o)->order('id desc')->limit(20)->select();
+     //   print_r( $data_o);exit;
      if($data_o){
 
     foreach($data_o as $value){
@@ -152,34 +158,56 @@ if($data_o['code']=='0'){
 //线上
         }else{
             //线下
-            $where_os['id']=$value['id'];
-            $field_os='appointment_time,time_limit,appointment_dd,remarks,is_sex,people_num,money';
-            $value['order']=M('XmOrder')->field($field_os)->where($where_o)->find();
-            $where_ou['id']=$value['user_id'];
-            $field_ou='is_nm,nm,o_username,Head';
-            $value['user']=M('XmMember')->field($field_ou)->where($where_u)->find();
+
+            $where_os['id']=$value['order_id'];
+            $field_os='appointment_time,time_limit,appointment_dd,remarks,is_sex,people_num,money,order_name,jisu_time,classify';
+
+            $value['order']=M('XmOrder')->field($field_os)->where($where_os)->find();
+
+            //分类图片
+            if( $value['order']['classify']){
+                $wherext['id']=$value['order']['classify'];
+                $value['tupan']=M('XmTrystClassify')->where($wherext)->getField('prc');
+            }
+
+
+            $where_ou['id']= $value['user_id'];
+            $field_ou='is_nm,nm,o_username,Head,birth';
+            $value['user']=M('XmMember')->field($field_ou)->where($where_ou)->find();
+
+
+
             //抢订单状态
-            $where_qds['id']=$value['id'];
-            $field_os='order_id,is_qd_id';
-            $qddata=M('XmGrabSingle')->field($field_os)->where($where_o)->find();
-           if( $qddata['user_id']== $user_id){
-               $value['userstart']='已报名';
-               if($qddata['user_id']== 0){
-                   $value['userstart']='已报名';
-               }elseif($qddata['user_id']== 1){
-                   $value['userstart']='已被选中';
-               }else{
-                   $value['userstart']='订单被抢';
-               }
-           }else{
-               $value['userstart']='抢';
-           }
+            $where_qds['order_id']=$value['order_id'];
+            $where_qds['user_id']= $user_id;
+            $field_os='order_id,is_qd_id,user_id';
+
+            $qddata=M('XmGrabSingle')->field($field_os)->where( $where_qds)->find();
+         //   $value['userstarts']=M('XmGrabSingle')->getLastSql();
+            //状态 0抢 1已报名 2选中 3被抢
+if($qddata){
+    $value['userstart']='1';
+    if($qddata['is_qd_id']== 1){
+        $value['userstart']='2';
+    }else{
+        $field_bq='id';
+        $where_bq['order_id']=$value['order_id'];
+        $where_bq['is_qd_id']=1;
+        $bqdata=M('XmGrabSingle')->field($field_bq)->where($where_bq)->find();
+        if($bqdata){
+            $value['userstart']='3';
+        }
+    }
+}else{
+    //可抢
+    $value['userstart']='0';
+}
 
         }
 $ddata[]=$value;
     }
 
-         returnApiSuccess('支付成功',$ddata);
+         returnApiSuccess('成功',$ddata);
 }else{
     returnApiError( '无数据');
 }
@@ -192,7 +220,7 @@ $ddata[]=$value;
         $order_id = isset($_POST['order_id']) ? trim($_POST['order_id']) : '';//订单id
         //查看订单状态，过期
         $ROrder=M('XmRobOrde');
-        $sj=time();
+        $sj=get13TimeStamp();
         $where_or['end_time']  = array('lt', $sj);
         $where_or['id']  =$order_id;
         $dataR=$ROrder->where($where_or)->find();
@@ -204,10 +232,10 @@ $ddata[]=$value;
         $dataR=  $gsdata->where($where_qg)->find();
         if($dataR){ returnApiError( '此订单已抢过');}
         //添加
-        $where['order_id']=  $order_id;
+        $where['order_id']= $order_id;
         $where['user_id']=  $user_id;
-        $where['add_time']= time();
-        $where['start']=  1;
+        $where['add_time']= get13TimeStamp();
+        $where['start']= 1;
 
         $data=$gsdata->add($where);
 if($data){

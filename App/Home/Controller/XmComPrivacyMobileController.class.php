@@ -18,8 +18,6 @@ class XmcomprivacymobileController extends ComController
     //绑定测试
     public static function index()
     {
-
-
         $accessKeyId=C('accessKeyId');
         $accessKeySecret=C('accessKeySecret');
         $h=new Plsth($accessKeyId,$accessKeySecret);

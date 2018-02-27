@@ -1,5 +1,9 @@
 <?php
-
+/**
+ * app调用单页面
+ * @author 熊敏
+ * @version 1.0
+ */
 namespace Home\Controller;
 
 use Vendor\Page;
@@ -15,6 +19,11 @@ class IndexController extends ComController
     }
 
 
+    public function indexStrategy()
+    {
+        $this->display();
+    }
+    
     /*
     //一些前台DEMO
     //单页
