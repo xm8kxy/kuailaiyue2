@@ -766,7 +766,22 @@ class ApipersonalController extends ApiComController
         }
     }
 
-
+    /**
+     * xxxxxx
+     *
+     * @author 钱晓松
+     * @version 1.0
+     * @param int $_POST ['order_id'] 订单id
+     * @return array
+     **/
+    public function GetOneOrders()
+    {
+        $h = new Easemob($this->options);
+        $hx = $h->getToken();
+        echo $hx;
+        echo 222;
+        exit;
+    }
     /**----------------------------------------个人资料 结束 钱晓松----------------------------------------*/
 
 }
