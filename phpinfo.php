@@ -1,3 +1,4 @@
 <?php
- phpinfo(); 
+ phpinfo();
+echo 1123;exit;
 ?>
