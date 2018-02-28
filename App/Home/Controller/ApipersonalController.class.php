@@ -128,7 +128,7 @@ class ApipersonalController extends ApiComController
 
         if( $user_id  == ''){ returnApiError('用户id不能为空！');}
 
-        $field='is_fwz,is_jkuser,jk_balance,is_nm,nm,o_username,balance,gxqm,birth,Head,is_audit,is_information,sex';
+        $field = 'moblie,is_fwz,is_jkuser,jk_balance,is_nm,nm,o_username,balance,gxqm,birth,Head,is_audit,is_information,sex';
         $data= xm_user($user_id,$field);
         returnApiSuccess('请求成功',$data);
     }
@@ -553,7 +553,7 @@ class ApipersonalController extends ApiComController
      *
      * @author 钱晓松
      * @version 1.0
-     * @param int $_POST['user_id'] 用户id
+     * @param int $_POST ['mobile'] 用户id
      * @return array
      **/
     public function GetUser()
@@ -773,7 +773,23 @@ class ApipersonalController extends ApiComController
         }
     }
 
-
+    /**
+     * xxxxxx
+     *
+     * @author 钱晓松
+     * @version 1.0
+     * @param int $_POST ['order_id'] 订单id
+     * @return array
+     **/
+    public function GetOneOrders()
+    {
+        $h = new Easemob($this->options);
+        $hx = $h->getToken();
+        echo $hx;
+        echo 1234569991123;
+        exit;
+//        git remote add origin https://github.com/xm8kxy/kuailaiyue2.git
+    }
     /**----------------------------------------个人资料 结束 钱晓松----------------------------------------*/
 
 }
