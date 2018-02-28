@@ -262,10 +262,17 @@ class ApipersonalController extends ApiComController
 //        if($type){
 //            $where['type']= $type;
 //        }
-        $where['user_id']=  $user_id ;
+        //自己接的单也要看到
+        $jiewhere['_string']="FIND_IN_SET(".$user_id.",xz_user_id)" ;
+
+
+        //自己的单
+         $where['user_id']=  $user_id ;
         $field='id,user_id,appointment_time,time_limit,appointment_dd,money,status,xz_user_id,order_name,jisu_time,classify,is_renew,is_advance_notice';
-        $data=$modle->field($field)->where($where)->order('id desc')->select();
-       
+        $dataa=$modle->field($field)->where($where)->order('id desc')->select();
+        $datass=$modle->field($field)->where($jiewhere)->order('id desc')->select();
+        $dataqian= array_merge($dataa,$datass);
+        $data = my_sort($dataqian,'id',SORT_DESC,SORT_STRING);
         foreach($data as $k=>$value){
             //修改订单表示 is_gb_order=1 是视频  =2是发生改变的订单 =0 普通订单
             if($value['classify']==1){$value['is_gb_order']=1;}elseif($value['is_renew']==1){$value['is_gb_order']=2;}elseif($value['is_advance_notice']==1){$value['is_gb_order']=2;}else{$value['is_gb_order']=0;}
@@ -779,8 +786,9 @@ class ApipersonalController extends ApiComController
         $h = new Easemob($this->options);
         $hx = $h->getToken();
         echo $hx;
-        echo 1234569991;
+        echo 1234569991123;
         exit;
+//        git remote add origin https://github.com/xm8kxy/kuailaiyue2.git
     }
     /**----------------------------------------个人资料 结束 钱晓松----------------------------------------*/
 

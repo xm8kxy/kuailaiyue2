@@ -57,7 +57,7 @@ class ApiController extends ApiComController
         $no_dr[]='ManPostPaymentAudit'; //支付后调用验证
         $no_dr[]='getSMSCode'; //发送短信
 
-    //  parent::checkRequsetdr($no_dr);
+    // parent::checkRequsetdr($no_dr);
 
     }
 
@@ -65,7 +65,10 @@ class ApiController extends ApiComController
 
     public function index()
     {
-
+        $user_id=14;
+        $money=10.03;
+        print_r(  xm_put_user_money($user_id,-$money));
+        exit;
         returnApiError( '电话号码必须！');
         echo 1;exit;
         $body="";
@@ -93,7 +96,7 @@ echo $aa;
 //        XmComPrivacyMobileController::bdshouji($NoA, $NoB, $Stime, $orderid);
 //        $accessKeyId=C('accessKeyId');
 //        $accessKeySecret=C('accessKeySecret');
-//        $h=new Plsth($accessKeyId,$accessKeySecret);
+ //      $h=new Plsth($accessKeyId,$accessKeySecret);
 //        $NoA='15994221307';
 //        //  $NoB='15071278668';
 //        $NoB='17771879069';
@@ -144,7 +147,7 @@ echo $aa;
 //        $content="$aaa";
 //        $ext['a']="a";
 //        $ext['b']="b";
-//        var_dump($h->sendText($from,$target_type,$target,$content,$ext));
+   //     var_dump($h->sendText($from,$target_type,$target,$content,$ext));
     }
 
     //短信发送
@@ -781,15 +784,18 @@ if($result && $result2 && $result3){
         $where['start'] = 1;
         $field='order_id,user_id';
         $data=$Mcdata->field( $field)->where($where)->select();
-    //    echo $Mcdata->getLastSql();
-    // print_r( $data);
+//        echo $Mcdata->getLastSql();
+//     print_r( $data);
 if($data){
     foreach( $data as $value){
        $where_u['id']=$value['user_id'];
        $field_u='o_username,height,weight,sex,video,Head,moblie';
         $value['userdata']= $Muser->field($field_u)->where($where_u)->find();
-    $userdatas[]=$value;
+         $userdatas[]=$value;
     }
+    returnApiSuccess('查询成功',$userdatas);
+}else{
+    $userdatas[]='';
     returnApiSuccess('查询成功',$userdatas);
 }
     }
@@ -1184,9 +1190,12 @@ if( $userm['is_jkuser']==1){
         //过滤
         if($user_id==""){ returnApiError( '用户id必须');}
         if($target_area==""){ returnApiError( '地区必须');}
-
-        $usermoney =  xm_is_jk_money($user_id);//用户可用钱
-        if($usermoney<10){  returnApiError('余额不足请充值');}
+        //新用户送3分钟
+        $userdata=  xm_user( $user_id,'is_news,is_jkuser');
+        if($userdata['is_news']==0){
+            $usermoney =  xm_is_jk_money($user_id);//用户可用钱
+            if($usermoney<10){  returnApiError('余额不足请充值');}
+        }
 
         //逻辑
         $data['order_number']= build_order_no(); //订单编号
@@ -1197,17 +1206,50 @@ if( $userm['is_jkuser']==1){
         $data['is_sex']=  $is_sex;//要求性别
         $data['is_anonymous']=  $is_anonymous;//是否匿名
         $data['money']=  $money;//金额
-        $data['status']=  0;
+        $data['payment_method']=  '余额';//金额
+        $data['user_payment']=  $money;//支付金额
+
+        $data['status']=  1;
 
         $data['time_add']= get13TimeStamp();
-        $model=M('XmOrder');
-        $tjcg=$model->add($data);
-        if($tjcg){
-            returnApiSuccess('添加成功',$tjcg);
+        $data['appointment_time']= get13TimeStamp();
+        $data['jisu_time']= get13TimeStamp()+(10*60*1000);
+
+        $Model = M();
+        $Model->startTrans();
+        $result1 =$Model->table('qw_xm_order')->add($data);
+        if($userdata['is_news']==0){
+            //用户扣10钱
+            $field="is_jkuser,jk_balance,balance";
+            $xuj= xm_user($user_id, $field);
+            $wherexuj['id']=$user_id;
+            if( $xuj['is_jkuser']){
+                //金卡用户
+                $qian=$xuj['jk_balance']-$money;
+                $datasj['jk_balance']= $qian;
+                $result2=$Model->table('qw_xm_member')->where($wherexuj)->save($datasj);
+            }else{
+                $qian=$xuj['balance']-$money;
+                $datasj['balance']=$qian;
+                $result2=$Model->table('qw_xm_member')->where($wherexuj)->save($datasj);
+            }
+            if($result2){
+                $manm='发起视频通话花费'.$money;
+                moneylog( $manm, $user_id,0,-$money,$qian,'余额',$result1);
+            }
         }else{
+            $result2=1;
+        }
+
+        if ($result1 && $result2) {
+            $Model->commit(); // 成功则提交事务
+            returnApiSuccess('添加成功',$result1);
+        } else {
+            $Model->rollback(); // 否则将事务回滚
             returnApiError( '添加失败');
         }
 }
+
 //个人充值页面余额
     public function ManOnlineye()
     {
@@ -1266,9 +1308,42 @@ if( $userm['is_jkuser']==1){
     }
 
 
+    /**
+     * 每次访问，检查用户钱，更改订单时间
+     */
+    public function ManOnlinePuttime(){
+        $user_id = isset($_POST['user_id']) ? trim($_POST['user_id']) : '';//用户id
+        $order_id = isset($_POST['order_id']) ? trim($_POST['order_id']) : '';//订单id
+
+        if ($order_id == '') {returnApiError('订单id必须');}
+        if ($user_id == '') {returnApiError('用户必须');}
+
+        //订单状态
+        $order_start = xm_order_start($order_id, $user_id);
+        if ($order_start == '-1') {
+            returnApiError('无订单或者不是你的订单');
+        }
+        //改变订单时间
+        if(xm_order_time($order_id)){
+            $usermoney =  xm_is_jk_money($user_id);//用户可用钱
+            if($usermoney==10){returnApiSuccess('余额不足请充值', 1);}
+            if($usermoney<9){
+                returnApiError('余额不足请充值');
+            }else{
+                returnApiSuccess('查询成功', 1);
+            }
+
+        }else{
+            returnApiError('网络异常');
+        };
+
+    }
 
 
-//正常线上扣费
+    /**
+     * 根据订单时间扣费，改变订单状态，给女方钱
+     */
+//正常线上扣费(先服务在扣费)
     public function ManOnlineMomey()
     {
         $user_id = isset($_POST['user_id']) ? trim($_POST['user_id']) : '';//用户id
@@ -1354,118 +1429,6 @@ if($userdata['is_jkuser']){
 
 //。。。。。。。-----------------------------------------------------------------男性线上模块结束-------------------------------------------
 
-
-
     //-----------------------------------------------------------------男性模块结束-------------------------------------------
-
-    //-----------------------------------------------------------------女性模块开始-------------------------------------------
-//    //女性抢单
-//    public function WomenGrabOrder()
-//    {
-//        //查询订单是否过期改订单状态
-//        $sj=time();
-//        $data_sj['status']=0;
-//        $where_sj['end_time']  = array('lt', $sj);
-//        $Xro=M('XmRobOrde');
-//        $Xro->where( $where_sj)->save($data_sj); // 根据条件更新记录
-//
-//        //清除过期菜单
-//        $Xro->where('status=0')->delete(); // 删除所有状态为0的用户数据
-//
-//        //根据地区时间订单状态  女性是否是禁用时间
-//        $user_id = isset($_POST['user_id']) ? trim($_POST['user_id']) : '';//用户id
-//        $t = intval($_POST['t']) > 0 ?$_POST['t'] : '';//时间
-//        $area = isset($_POST['area']) ? trim($_POST['area']) : '武汉';//用户id
-//
-//        $where_u['id']=$user_id;
-//        $field='is_fwz,is_disable';
-//        $data_u = M('XmMember')->field($field)->where( $where_u)->find();
-//        if($data_u['is_fwz']==0){ returnApiError( '不是服务者');}
-//        if($data_u['is_disable']==1){ returnApiError( '被禁用');}
-//
-//
-//        //查询用订单
-//        $where_o['status']=1;
-//        $where_o['area']=$area;
-//        $field_o='id,user_id';
-//        $data_o=$Xro->field($field_o)->where($where_o)->limit(20)->select();
-//     if($data_o){
-//
-//    foreach($data_o as $value){
-//        if($value['type']){
-////线上
-//        }else{
-//            //线下
-//            $where_os['id']=$value['id'];
-//            $field_os='appointment_time,time_limit,appointment_dd,remarks,is_sex,people_num,money';
-//            $value['order']=M('XmOrder')->field($field_os)->where($where_o)->find();
-//            $where_ou['id']=$value['user_id'];
-//            $field_ou='is_nm,nm,o_username,Head';
-//            $value['user']=M('XmMember')->field($field_ou)->where($where_u)->find();
-//            //抢订单状态
-//            $where_qds['id']=$value['id'];
-//            $field_os='order_id,is_qd_id';
-//            $qddata=M('XmGrabSingle')->field($field_os)->where($where_o)->find();
-//           if( $qddata['user_id']== $user_id){
-//               $value['userstart']='已报名';
-//               if($qddata['user_id']== 0){
-//                   $value['userstart']='已报名';
-//               }elseif($qddata['user_id']== 1){
-//                   $value['userstart']='已被选中';
-//               }else{
-//                   $value['userstart']='订单被抢';
-//               }
-//           }else{
-//               $value['userstart']='抢';
-//           }
-//
-//        }
-//$ddata[]=$value;
-//    }
-//
-//         returnApiSuccess('支付成功',$ddata);
-//}else{
-//    returnApiError( '无数据');
-//}
-//
-//    }
-//
-//    //女性点击抢单
-//    public function WomenGrabs(){
-//        $user_id = isset($_POST['user_id']) ? trim($_POST['user_id']) : '';//用户id
-//        $order_id = isset($_POST['order_id']) ? trim($_POST['order_id']) : '';//订单id
-//        //查看订单状态，过期
-//        $ROrder=M('XmRobOrde');
-//        $sj=time();
-//        $where_or['end_time']  = array('lt', $sj);
-//        $where_or['id']  =$order_id;
-//        $dataR=$ROrder->where($where_or)->find();
-//        if($dataR){ returnApiError( '订单已过期');}
-//        //抢过的不能再抢
-//        $where_qg['order_id']= $order_id;
-//        $where_qg['user_id']=  $user_id;
-//        $gsdata=M('XmGrabSingle');
-//        $dataR=  $gsdata->where($where_qg)->find();
-//        if($dataR){ returnApiError( '此订单已抢过');}
-//        //添加
-//        $where['order_id']=  $order_id;
-//        $where['user_id']=  $user_id;
-//        $where['add_time']= time();
-//        $where['start']=  1;
-//
-//        $data=$gsdata->add($where);
-//if($data){
-//    returnApiSuccess('抢单成功',1);
-//}else{
-//    returnApiError( '抢单失败');
-//}
-//        //
-//    }
-//    //。。。。。。。-----------------------------------------------------------------女性线下模块开始-------------------------------------------
-//
-
-
-    //。。。。。。。-----------------------------------------------------------------女性线下模块结束-------------------------------------------
-    //-----------------------------------------------------------------女性模块结束-------------------------------------------
 
 }
