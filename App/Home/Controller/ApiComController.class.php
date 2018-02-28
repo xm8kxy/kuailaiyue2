@@ -33,6 +33,7 @@ class ApiComController extends Controller
 
         $headers =  getallheaders();
         $app_type=explode(',',c('app_type'));
+
         if(!in_array($headers['Apptype'], $app_type)) {
             returnApiError( 'app_type不合法');
         }

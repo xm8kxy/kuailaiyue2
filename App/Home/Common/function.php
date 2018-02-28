@@ -251,7 +251,7 @@ function xm_order_start($order_id,$user_id){
 /**
  * @name 改变订单状态
  * @author 熊敏
- * @param int $user_id 用户id
+ * @param int $order_id 订单id
  * @param int $start 订单状态
  * @return Integer
  */
@@ -263,7 +263,20 @@ function xm_order_g_start($order_id,$start){
     $data['status']=$start;
     $datas=M('XmOrder')->where($where)->save( $data);
     return $datas;
+}
 
+/**
+ * @name 改变订单时间
+ * @author 熊敏
+ * @param int $order_id 订单id
+ * @return Integer
+ */
+function xm_order_time($order_id){
+    if(!isset($order_id)){ return false;}
+    $where['id']=$order_id;
+    $data['jisu_time']=get13TimeStamp();
+    $datas=M('XmOrder')->where($where)->save( $data);
+    return $datas;
 }
 
 /**
@@ -298,9 +311,39 @@ function xm_put_user($user_id,$data){
     }else{
         return false;
     }
-
 }
 
+/**
+ * @name 扣费或者加钱
+ * @author 熊敏
+ * @param int $user_id 用户id
+ * @param array $money 金额
+ * @return Integer
+ */
+function xm_put_user_money($user_id,$money){
+    if(!isset($user_id)){ return false;}
+    if(!isset($money)){ return false;}
+    $field="is_jkuser,jk_balance,balance";
+    $data= xm_user($user_id, $field);
+    $where['id']=$user_id;
+    if( $data['is_jkuser']){
+        //金卡用户
+        $qian=$data['jk_balance']+$money;
+        $datasj['jk_balance']= $qian;
+        $datas=M('XmMember')->where($where)->save($datasj);
+    }else{
+        $qian=$data['balance']+$money;
+        $datasj['balance']=$qian;
+        $datas['s']=M('XmMember')->where($where)->save($datasj);
+    }
+    if($datas['s']){
+
+        $datas['q']=$qian;
+        return $datas;
+    }else{
+        return false;
+    }
+}
 
 
 
@@ -627,8 +670,29 @@ function add_yc_order($zf_type=1,$order_mun,$money,$add_time,$remarks,$coupon_mu
 //        return false;
 //    }
 //}
-
-
+/**
+ * 数组排序
+ * @param $arrays
+ * @param $sort_key
+ * @param int $sort_order
+ * @param int $sort_type
+ * @return array|bool
+ */
+function my_sort($arrays,$sort_key,$sort_order=SORT_ASC,$sort_type=SORT_NUMERIC ){
+    if(is_array($arrays)){
+        foreach ($arrays as $array){
+            if(is_array($array)){
+                $key_arrays[] = $array[$sort_key];
+            }else{
+                return false;
+            }
+        }
+    }else{
+        return false;
+    }
+    array_multisort($key_arrays,$sort_order,$sort_type,$arrays);
+    return $arrays;
+}
 //-----------------------------------------
 
 function addlog($log, $name = false)

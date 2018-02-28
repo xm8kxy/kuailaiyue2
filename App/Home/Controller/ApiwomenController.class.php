@@ -148,13 +148,15 @@ if($data_o['code']=='0'){
         //查询用订单
         $where_o['status']=1;
         $where_o['area']=$area;
-        $field_o='id,user_id,order_id';
+        $where_o['user_id']=array("NEQ", $user_id);
+
+        $field_o='id,user_id,order_id,type';
         $data_o=$Xro->field($field_o)->where($where_o)->order('id desc')->limit(20)->select();
      //   print_r( $data_o);exit;
      if($data_o){
 
     foreach($data_o as $value){
-        if($value['type']){
+        if($value['type']=='1'){
 //线上
         }else{
             //线下
@@ -172,7 +174,7 @@ if($data_o['code']=='0'){
 
 
             $where_ou['id']= $value['user_id'];
-            $field_ou='is_nm,nm,o_username,Head,birth';
+            $field_ou='is_nm,nm,o_username,Head,birth,moblie';
             $value['user']=M('XmMember')->field($field_ou)->where($where_ou)->find();
 
 
