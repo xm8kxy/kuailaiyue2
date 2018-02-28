@@ -779,7 +779,7 @@ class ApipersonalController extends ApiComController
         $h = new Easemob($this->options);
         $hx = $h->getToken();
         echo $hx;
-        echo 1234569991;
+        echo 1234569991123;
         exit;
 //        git remote add origin https://github.com/xm8kxy/kuailaiyue2.git
     }
