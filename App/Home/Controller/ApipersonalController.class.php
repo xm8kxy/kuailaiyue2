@@ -781,6 +781,7 @@ class ApipersonalController extends ApiComController
         echo $hx;
         echo 1234569991;
         exit;
+//        git remote add origin https://github.com/xm8kxy/kuailaiyue2.git
     }
     /**----------------------------------------个人资料 结束 钱晓松----------------------------------------*/
 
